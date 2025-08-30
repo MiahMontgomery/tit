@@ -53,10 +53,10 @@ export function ProjectCard({ project, onSelect }: ProjectCardProps) {
       className="cursor-pointer transition-all duration-200 p-6 group"
       onClick={handleCardClick}
       style={{
-        backgroundColor: '#0f0f0f',
-        borderColor: '#00ffff',
-        border: '1px solid #00ffff',
-        boxShadow: '0 0 0 1px #00ffff, 0 0 8px rgba(0, 255, 255, 0.3)',
+        backgroundColor: 'transparent',
+        borderColor: '#40e0d0',
+        border: '1px solid #40e0d0',
+        boxShadow: '0 0 0 1px #40e0d0, 0 0 8px rgba(64, 224, 208, 0.3)',
         color: '#e0e0e0'
       }}
     >

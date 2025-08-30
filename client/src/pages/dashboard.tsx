@@ -46,8 +46,8 @@ export default function Dashboard() {
           variant="outline"
           className="flex items-center gap-2 transition-all duration-200"
           style={{
-            borderColor: '#00ffff',
-            color: '#00ffff',
+            borderColor: '#40e0d0',
+            color: '#40e0d0',
             backgroundColor: 'transparent'
           }}
         >
@@ -66,20 +66,8 @@ export default function Dashboard() {
               /* Empty State */
               <div className="flex flex-col items-center justify-center min-h-96 text-center">
                 <p className="text-lg mb-6" style={{ color: '#888888' }}>
-                  No projects yet. Click "Add New Project" to begin.
+                  No projects yet. Click "Add Project" to begin.
                 </p>
-                <Button
-                  data-testid="button-add-first-project"
-                  onClick={() => setIsModalOpen(true)}
-                  className="flex items-center gap-2 hover:opacity-90 transition-opacity"
-                  style={{
-                    backgroundColor: '#00ffff',
-                    color: '#000000'
-                  }}
-                >
-                  <Plus className="w-4 h-4" />
-                  Add New Project
-                </Button>
               </div>
             ) : (
               /* Projects Row */
