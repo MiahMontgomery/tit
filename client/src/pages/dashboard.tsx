@@ -45,6 +45,10 @@ export default function Dashboard() {
           onClick={() => setIsModalOpen(true)}
           variant="outline"
           className="flex items-center gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+          style={{
+            borderColor: 'hsl(180, 100%, 50%)',
+            color: 'hsl(180, 100%, 50%)'
+          }}
         >
           <Plus className="w-4 h-4" />
           Add Project

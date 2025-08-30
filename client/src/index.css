@@ -3,25 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 3%);
-  --foreground: hsl(0, 0%, 90%);
-  --card: hsl(0, 0%, 8%);
-  --card-foreground: hsl(0, 0%, 90%);
-  --popover: hsl(0, 0%, 8%);
-  --popover-foreground: hsl(0, 0%, 90%);
-  --primary: hsl(174, 100%, 41%);
+  --background: hsl(0, 0%, 2%);
+  --foreground: hsl(0, 0%, 85%);
+  --card: hsl(0, 0%, 6%);
+  --card-foreground: hsl(0, 0%, 85%);
+  --popover: hsl(0, 0%, 6%);
+  --popover-foreground: hsl(0, 0%, 85%);
+  --primary: hsl(180, 100%, 50%);
   --primary-foreground: hsl(0, 0%, 5%);
   --secondary: hsl(120, 100%, 50%);
-  --secondary-foreground: hsl(0, 0%, 0%);
-  --muted: hsl(0, 0%, 15%);
-  --muted-foreground: hsl(0, 0%, 60%);
-  --accent: hsl(174, 100%, 41%);
+  --secondary-foreground: hsl(0, 0%, 5%);
+  --muted: hsl(0, 0%, 12%);
+  --muted-foreground: hsl(0, 0%, 50%);
+  --accent: hsl(180, 100%, 50%);
   --accent-foreground: hsl(0, 0%, 5%);
   --destructive: hsl(0, 84%, 60%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --border: hsl(174, 100%, 41%);
-  --input: hsl(0, 0%, 8%);
-  --ring: hsl(174, 100%, 41%);
+  --border: hsl(0, 0%, 15%);
+  --input: hsl(0, 0%, 6%);
+  --ring: hsl(180, 100%, 50%);
   --chart-1: hsl(180, 100%, 50%);
   --chart-2: hsl(123, 61%, 52%);
   --chart-3: hsl(42, 92%, 50%);
@@ -52,25 +52,25 @@
 }
 
 .dark {
-  --background: hsl(0, 0%, 3%);
-  --foreground: hsl(0, 0%, 90%);
-  --card: hsl(0, 0%, 8%);
-  --card-foreground: hsl(0, 0%, 90%);
-  --popover: hsl(0, 0%, 8%);
-  --popover-foreground: hsl(0, 0%, 90%);
-  --primary: hsl(174, 100%, 41%);
+  --background: hsl(0, 0%, 2%);
+  --foreground: hsl(0, 0%, 85%);
+  --card: hsl(0, 0%, 6%);
+  --card-foreground: hsl(0, 0%, 85%);
+  --popover: hsl(0, 0%, 6%);
+  --popover-foreground: hsl(0, 0%, 85%);
+  --primary: hsl(180, 100%, 50%);
   --primary-foreground: hsl(0, 0%, 5%);
   --secondary: hsl(120, 100%, 50%);
-  --secondary-foreground: hsl(0, 0%, 0%);
-  --muted: hsl(0, 0%, 15%);
-  --muted-foreground: hsl(0, 0%, 60%);
-  --accent: hsl(174, 100%, 41%);
+  --secondary-foreground: hsl(0, 0%, 5%);
+  --muted: hsl(0, 0%, 12%);
+  --muted-foreground: hsl(0, 0%, 50%);
+  --accent: hsl(180, 100%, 50%);
   --accent-foreground: hsl(0, 0%, 5%);
   --destructive: hsl(0, 84%, 60%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --border: hsl(174, 100%, 41%);
-  --input: hsl(0, 0%, 8%);
-  --ring: hsl(174, 100%, 41%);
+  --border: hsl(0, 0%, 15%);
+  --input: hsl(0, 0%, 6%);
+  --ring: hsl(180, 100%, 50%);
   --chart-1: hsl(180, 100%, 50%);
   --chart-2: hsl(123, 61%, 52%);
   --chart-3: hsl(42, 92%, 50%);
@@ -103,6 +103,10 @@
     @apply border-border;
   }
 
+  html {
+    @apply dark;
+  }
+  
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
@@ -110,11 +114,11 @@
 
 /* Custom glow effects for project cards */
 .glow-border {
-  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.3), 0 0 8px hsl(var(--primary) / 0.2);
+  box-shadow: 0 0 0 1px hsl(180, 100%, 50%), 0 0 8px hsl(180, 100%, 50% / 0.3);
 }
 
 .glow-border-active {
-  box-shadow: 0 0 0 1px hsl(var(--primary)), 0 0 12px hsl(var(--primary) / 0.4);
+  box-shadow: 0 0 0 1px hsl(180, 100%, 50%), 0 0 12px hsl(180, 100%, 50% / 0.4);
 }
 
 .pulse-border {
@@ -123,9 +127,9 @@
 
 @keyframes pulse-glow {
   0%, 100% { 
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.5), 0 0 8px hsl(var(--primary) / 0.3); 
+    box-shadow: 0 0 0 1px hsl(180, 100%, 50% / 0.5), 0 0 8px hsl(180, 100%, 50% / 0.3); 
   }
   50% { 
-    box-shadow: 0 0 0 1px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.6); 
+    box-shadow: 0 0 0 1px hsl(180, 100%, 50%), 0 0 16px hsl(180, 100%, 50% / 0.6); 
   }
 }

@@ -76,7 +76,10 @@ export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
   };
 
   return (
-    <div className="bg-card rounded-lg border border-primary/30 p-6 glow-border">
+    <div className="bg-card rounded-lg border p-6" style={{
+      borderColor: 'hsl(180, 100%, 50%)',
+      boxShadow: '0 0 0 1px hsl(180, 100%, 50%), 0 0 8px hsl(180, 100%, 50% / 0.3)'
+    }}>
       {/* Project Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

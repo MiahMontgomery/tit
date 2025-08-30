@@ -50,8 +50,12 @@ export function ProjectCard({ project, onSelect }: ProjectCardProps) {
   return (
     <Card 
       data-testid={`card-project-${project.id}`}
-      className="bg-card border-primary/50 hover:border-primary cursor-pointer transition-all duration-200 p-6 group glow-border hover:glow-border-active"
+      className="bg-card border-primary cursor-pointer transition-all duration-200 p-6 group"
       onClick={handleCardClick}
+      style={{
+        borderColor: 'hsl(180, 100%, 50%)',
+        boxShadow: '0 0 0 1px hsl(180, 100%, 50%), 0 0 8px hsl(180, 100%, 50% / 0.3)'
+      }}
     >
       <div className="flex items-start justify-between mb-3">
         <h3 data-testid={`text-project-name-${project.id}`} className="font-semibold text-lg text-foreground">
