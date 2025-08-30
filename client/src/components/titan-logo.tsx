@@ -6,9 +6,9 @@ export function TitanLogo({ className = "w-6 h-6" }: { className?: string }) {
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* 4-pointed star shape */}
+      {/* 4-pointed star shape matching the reference */}
       <path
-        d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"
+        d="M12 0L16 8L24 12L16 16L12 24L8 16L0 12L8 8L12 0Z"
         fill="hsl(var(--primary))"
         className="drop-shadow-sm"
       />

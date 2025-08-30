@@ -50,7 +50,7 @@ export function ProjectCard({ project, onSelect }: ProjectCardProps) {
   return (
     <Card 
       data-testid={`card-project-${project.id}`}
-      className="bg-card border-primary/30 hover:border-primary/60 cursor-pointer transition-all duration-200 p-4 group glow-border hover:glow-border-active"
+      className="bg-card border-primary/50 hover:border-primary cursor-pointer transition-all duration-200 p-6 group glow-border hover:glow-border-active"
       onClick={handleCardClick}
     >
       <div className="flex items-start justify-between mb-3">
@@ -74,8 +74,8 @@ export function ProjectCard({ project, onSelect }: ProjectCardProps) {
       </p>
       
       <div className="flex items-center gap-2">
-        <div className="w-2 h-2 bg-secondary rounded-full"></div>
-        <span data-testid={`text-project-status-${project.id}`} className="text-sm text-muted-foreground">
+        <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+        <span data-testid={`text-project-status-${project.id}`} className="text-sm text-secondary font-medium">
           {project.status}
         </span>
       </div>

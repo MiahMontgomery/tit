@@ -73,16 +73,16 @@ export default function Dashboard() {
                 </Button>
               </div>
             ) : (
-              /* Projects Grid */
+              /* Projects Row */
               <div>
-                <h2 className="text-xl font-semibold mb-6">Projects</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="flex gap-6 overflow-x-auto pb-4">
                   {projects.map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      onSelect={handleProjectSelect}
-                    />
+                    <div key={project.id} className="flex-shrink-0 w-80">
+                      <ProjectCard
+                        project={project}
+                        onSelect={handleProjectSelect}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>

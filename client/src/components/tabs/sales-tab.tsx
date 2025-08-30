@@ -60,7 +60,7 @@ export function SalesTab({ projectId }: SalesTabProps) {
           <CardContent className="p-4">
             <h4 className="text-sm font-medium text-muted-foreground mb-2">Income Earned</h4>
             <p data-testid="sales-income" className="text-2xl font-bold text-secondary">
-              {formatCurrency(salesData.income)}
+              {formatCurrency(salesData.income || 0)}
             </p>
           </CardContent>
         </Card>

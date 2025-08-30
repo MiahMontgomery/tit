@@ -135,7 +135,8 @@ export class MemStorage implements IStorage {
       ...insertFeature,
       id,
       createdAt: new Date(),
-      status: "pending"
+      status: "pending",
+      description: insertFeature.description || null
     };
     this.features.set(id, feature);
     return feature;
