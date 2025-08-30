@@ -50,11 +50,14 @@ export function ProjectCard({ project, onSelect }: ProjectCardProps) {
   return (
     <Card 
       data-testid={`card-project-${project.id}`}
-      className="bg-card border-primary cursor-pointer transition-all duration-200 p-6 group"
+      className="cursor-pointer transition-all duration-200 p-6 group"
       onClick={handleCardClick}
       style={{
-        borderColor: 'hsl(180, 100%, 50%)',
-        boxShadow: '0 0 0 1px hsl(180, 100%, 50%), 0 0 8px hsl(180, 100%, 50% / 0.3)'
+        backgroundColor: '#0f0f0f',
+        borderColor: '#00ffff',
+        border: '1px solid #00ffff',
+        boxShadow: '0 0 0 1px #00ffff, 0 0 8px rgba(0, 255, 255, 0.3)',
+        color: '#e0e0e0'
       }}
     >
       <div className="flex items-start justify-between mb-3">
@@ -78,8 +81,8 @@ export function ProjectCard({ project, onSelect }: ProjectCardProps) {
       </p>
       
       <div className="flex items-center gap-2">
-        <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
-        <span data-testid={`text-project-status-${project.id}`} className="text-sm text-secondary font-medium">
+        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#00ff00' }}></div>
+        <span data-testid={`text-project-status-${project.id}`} className="text-sm font-medium" style={{ color: '#00ff00' }}>
           {project.status}
         </span>
       </div>
