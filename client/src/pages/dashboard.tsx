@@ -38,7 +38,7 @@ export default function Dashboard() {
       <header className="flex items-center justify-between p-6 border-b" style={{ borderColor: '#333333' }}>
         <div className="flex items-center gap-3">
           <TitanLogo />
-          <h1 className="text-2xl font-bold" style={{ color: '#e0e0e0' }}>TITAN</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#40e0d0' }}>TITAN</h1>
         </div>
         <Button
           data-testid="button-add-project"
