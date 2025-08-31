@@ -1,0 +1,155 @@
+
+
+You are building the Titan frontend system. This is not a placeholder, toy, or mockup. This is the final, real interface for Titan — an autonomous AI project builder. Backend integration will be completed using Cursor and Hetzner. Your job is to build the UI only, using Tailwind CSS and React. This prompt contains the complete specification.
+GLOBAL RULESSingle-page application (SPA)
+No route navigation; there is only one page (the dashboard)
+No simulated projects or placeholder content
+No emojis, no fake loading animations, no demo data
+Wait for user to create the first project
+Do not auto-generate test agents or filler messages
+HOMEPAGE / DASHBOARDThe homepage is the entire app. There are no other views. Every interaction happens within this page.
+When user loads the app:Header: Titan Projects
+A horizontal scroll row of existing projects (if any)
+A centered message: No projects yet. Click "Add New Project" to begin.
+Button: + Add New Project
+When user clicks + Add New ProjectDisplay a popup modal containing:
+Project Name (small input field)
+Project Prompt (large natural language textarea)
+On submit:
+POST request is made to /api/projects/create
+App waits for confirmation before creating the project box
+WHEN PROJECT IS CREATEDA horizontal rectangular box appears. It uses:
+Thin glowing green outline
+Dark background (#0d0d0d to #121212)
+White/gray text
+Neon green border pulse to indicate live status
+Clicking the project expands it inline into a 5-tab panel.
+The tabs are:
+Progress
+Input
+Logs
+Output
+Sales
+There is no page navigation. Everything happens in the dashboard.
+FILE STRUCTURE (UI-ONLY)/src
+  /components
+    ProjectCard.tsx             // Collapsed view on dashboard
+    ExpandedProject.tsx         // Full project with tab layout
+    TabNavigation.tsx           // Horizontal tab bar
+    ProgressTab.tsx             // Feature tree view
+    InputTab.tsx                // Replit-style chat with code, screenshots
+    LogsTab.tsx                 // Log of executions and actions
+    OutputTab.tsx               // Approve/reject content drafts
+    SalesTab.tsx                // Daily money + productivity info
+    ChatBubble.tsx              // User/agent messages
+    ScreenshotBlock.tsx         // Screenshot render inside chat
+    CodeBlock.tsx               // Code rollback section
+    RollbackButton.tsx
+  /contexts
+    ProjectContext.tsx
+    InputContext.tsx
+  /hooks
+    useProjectData.ts
+    useInputSync.ts
+  /lib
+    api.ts                      // Stubbed API handler
+    websocket.ts                // WebSocket connection shell
+    constants.ts
+  App.tsx
+  index.tsxPROJECT TAB BEHAVIOREach project expands to show five tabs, all rendered within the same component.
+1. PROGRESS TABA scrollable vertical list
+Feature boxes stacked vertically
+Green glowing border if complete
+Gray border if incomplete
+Each feature contains:
+Milestones (expandable)
+Each milestone has: nested list of goals
+GOAL STATUSGreen bullet if done
+Gray/black bullet if not started
+Color scheme for each block:
+Border glow: green if complete
+Background: dark (#0e0e0e)
+Text: white and soft gray hierarchy
+Spacing: padded, organized, consistent vertical rhythm
+2. INPUT TABChat interface, same style as Replit Agent
+Alternating User / Jason messages
+Jason can:
+Send screenshots
+Display inline code blocks
+Ask questions
+Execute tasks
+All screenshots and code are nestable components
+Screenshot component is previewable and expandable
+Each execution has:
+Timestamp
+Code block
+Optional rollback button
+If Jason asks a question and no reply within 2 hours:
+Jason sends a follow-up message with:
+Screenshot
+Explanation of autonomous decision
+Reasoning and anticipated result
+All decisions and screenshots are logged and rolled backable from chat
+3. LOGS TABChronological flat list
+Tracks only actionable events (not text replies)
+Executions
+Feature updates
+Rollbacks
+Project pushes (e.g., GitHub)
+Groups entries by day
+4. OUTPUT TABDisplays draft deliverables
+Audio, video, PDFs, documents
+For each:
+Preview component (player, reader, viewer)
+✅ Approve button
+❌ Reject button
+If rejected:
+Jason asks follow-up question in Input tab
+5. SALES TABShows yesterday’s performance
+Number of messages sent
+Content created
+Income earned
+Also logs sales actions like:
+“Sold 3 PDFs”
+“Delivered 6 videos to Fansly”
+“Received $129 via Shopify”
+INTER-TAB COMMUNICATIONOriginTargetSync BehaviorInputProgressAdds features/goals based on user requestInputLogsAll actions recorded as log itemsInputOutputContent requests show up hereOutputInputRejected content triggers chat follow-upProgressLogsCompletion events loggedUI DESIGN AND BEHAVIORColor scheme:
+Background: #0d0d0d to #121212
+Accent: Neon green
+Text: white/gray
+Component behavior:
+Everything animates smoothly (tailwind transitions)
+Tabs slide open inline
+Nested views (e.g., features > milestones > goals)
+Spacing and layout:
+Every block is a padded, thin-bordered card
+Glowing green border = system status ON
+Horizontal project boxes on dashboard
+Nested vertical tab views inside
+ACTION SUMMARYWait for user to create first project
+Accept project name + prompt
+Send to /api/projects/create
+Render horizontal box on success
+Show tabs: Progress, Input, Logs, Output, Sales
+Maintain correct visual hierarchy, nesting, and style
+All interactions are real; no placeholder content
+Do not simulate demo projects or fake logs
+DO NOT:Do not auto-create Titan1, Titan2, etc.
+Do not fake logs, fake Jason replies, or fake goals
+Do not pre-fill projects
+Do not build backend handlers — just hook the UI
+COMPLETION GOALThis UI will:
+Power real project creation
+Host real AI agent input
+Display real code, screenshots, logs, and outputs
+Be styled and structured exactly as the real Titan will appear in production
+
+
+
+Each project comes default with 5 tabs Progress tab: displays all features each feature has a drop-down arrow with nested milestones. The milestones are what it would look like if the features were working. each milestone has a drop-down nested point form list of goals each goal meaningfully builds towards the milestone. They follow the same colour scheme that the entire Titan project has, and they all have the same glowing green border outside of each box each milestone feature and goal is inside of its own thin box and they’re stacked neatly in a list format and they could be nested seamlessly You’ll know that it’s done because the point for less next to it the little bullet will be green instead of black if you take a look at the screenshot I sent you you’ll have a better idea of what each project layout looks like and should look like. Input tub;: this tab is essentially a replica of Replit agent chat. I provided some screenshots on what that looks like while I’m speaking with Jason. I’d like to see you in lifetime the Replit child changes that are taking place. I’d like to see the screenshots he’s taking so that he can ask me questions if what he’s looking at in puppeteer or what he’s doing is correct and I can take a look at it via the input tab the screenshots and all additions as will call them will be nested so within the chat, I can nest the screenshot. There’s also rollbacks within the input chat so I can roll back exactly how the Replit agent style chat does any edits are also viewable and you could see the code that was edited and it can be nested because it is an addition any executions anything that’s pushed to get hub or updated restarted opened can also be seen. I’ll provide more screenshots with details on this. This is where I will see the part questions that the agent has asked me and this is where I also see after it times out two hours without my response they’ll send me a screenshot. Tell me why they did what they did tell me why they made that executive decision and they will move on and it will have a rollback button in case I want them to undo those changes. I’m hoping that you can understand this that the logs are integrated into input and the progress tab also has something to do with input because if I go into the input chat or if I go into the widget and I start a call with Jason, I want to see lifetime our conversation being transcribed into the input chat. I wanna see him actively thinking actively working sending me screenshots asking me if this is correct asking me questions but if I were to say to the agent that I’m on the phone with doesn’t have to be Jason I want you to start this or I want you to add this feature. I want you to do this. I want you to create this, I want you to show me this. It will have to do it and if I request a new feature for the project, it will have to make it and that new feature would then go into the progress tab so they push and they pull information between the tabs right because of the progress tab is needing an update if I add in a new feature to the project via the input tub, it will need to push that information over to the progress tab so that the progress can update according progress hub can update the features goals milestones of this new feature. Can I update the project status? How far along we are that send us back etc. Log tab: then we have a log tab which essentially keeps track of all of the rollbacks executions any activity that was made in the chat aside from the actual messages and by chat, I mean input tab that is the chat so the logs page is really just for the actionable that took place and it keeps track of all of them of a chat histories. It has a chat history section Feature changes and all activity. Next to that we have an output tab this output tab will show me any of the content that they’ve created. That’s awaiting my approval whether it be a short clip for TikTok it’s in the draft they’ve taken a screen recording of it. They wanna post it. they just want me to review it. They can put it here in output and I can review it and there will be a checkmark for continue or an X for redo it and if I hit the X they will ask me questions about what needs to be changed in the input tab. This is where all content whether it’s a PDF file for Work or maybe it’s a YouTube video or maybe it’s a hypnosis video. Maybe it’s a digital sticker and they will learn based on this information on the style of sticker that I like on the style of hypnosis video that I like on this and that and they will ask me questions, meaningful questions so that they can learn deeper and understand their role better. Sales hub: the final tab under every project is the sales tab this displays basic sales information on how many messages they bought has sent out in that one day and they typically go by the previous days information so it would be how many messages they sent out yesterday how much content they created yesterday How much money they were able to generate yesterday and what they did to generate that money I want to see the specific acts like they have sold a pair of panties that was approved or they posted a video that instantly went viral or they sold for sticker packs or they Had 19 PDF template sales on Shopify site.
+
+
+
+
+Input tab
+Provides live actions above the chat bar similar to replits that detail what its actively working on (debugging syntax error, researching tools, integrating “..” tool, fixing “…”, etc - Provides a roll back feature based on check points within the chat similar to replits (includes an overview of the last changes that were made for reference like: fixed project creation name error, integrated firebase, removed uneccessary websocket subscription and added project export functionality)

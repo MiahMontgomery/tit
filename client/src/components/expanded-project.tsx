@@ -76,20 +76,21 @@ export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
   };
 
   return (
-    <div className="bg-card rounded-lg border p-6" style={{
-      borderColor: 'hsl(180, 100%, 50%)',
-      boxShadow: '0 0 0 1px hsl(180, 100%, 50%), 0 0 8px hsl(180, 100%, 50% / 0.3)'
+    <div className="rounded-lg border p-6 mt-4" style={{
+      backgroundColor: '#0d0d0d',
+      borderColor: '#40e0d0',
+      boxShadow: '0 0 0 1px #40e0d0, 0 0 8px rgba(64, 224, 208, 0.3)'
     }}>
       {/* Project Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 data-testid="text-expanded-project-name" className="text-2xl font-bold text-foreground">
+          <h3 data-testid="text-expanded-project-name" className="text-2xl font-bold" style={{ color: '#e0e0e0' }}>
             {project.name}
           </h3>
           <div className="flex items-center gap-2 mt-2">
-            <div className="w-2 h-2 bg-secondary rounded-full"></div>
-            <span data-testid="text-expanded-project-status" className="text-sm text-muted-foreground">
-              {project.status}
+            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#00ff00' }}></div>
+            <span data-testid="text-expanded-project-status" className="text-sm" style={{ color: '#888888' }}>
+              Active
             </span>
           </div>
         </div>
@@ -100,8 +101,9 @@ export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
             size="sm"
             onClick={handleDelete}
             disabled={deleteProjectMutation.isPending}
-            className="text-destructive hover:bg-destructive hover:text-destructive-foreground p-2"
+            className="hover:bg-gray-800 p-2"
             title="Delete Project"
+            style={{ color: '#ff6b6b' }}
           >
             <Trash2 className="w-5 h-5" />
           </Button>
@@ -110,7 +112,8 @@ export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground p-2"
+            className="hover:bg-gray-800 p-2"
+            style={{ color: '#888888' }}
           >
             <X className="w-5 h-5" />
           </Button>
@@ -118,18 +121,18 @@ export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-border mb-6">
+      <div className="border-b mb-6" style={{ borderColor: '#333333' }}>
         <nav className="flex space-x-8">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               data-testid={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
-              className={`border-b-2 py-2 px-1 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+              className="border-b-2 py-2 px-1 text-sm font-medium transition-colors"
+              style={{
+                color: activeTab === tab.id ? '#40e0d0' : '#888888',
+                borderBottomColor: activeTab === tab.id ? '#40e0d0' : 'transparent',
+              }}
             >
               {tab.label}
             </button>
