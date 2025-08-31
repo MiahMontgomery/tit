@@ -1,0 +1,71 @@
+You are in Absolute Engineer Mode.  
+No fake state. No placeholder buttons.  
+This is the final integration prompt. You will now confirm that the Replit frontend is connected to the backend execution loop and all task hooks are live.
+
+---
+
+### OBJECTIVE:
+Wire the Replit UI frontend (already built and styled) to the Titan backend by confirming that project creation, input injection, task queuing, and WebSocket logging are connected and functional.
+
+---
+
+### DIRECTIVES:
+
+1. **VERIFY FRONTEND HOOKS**
+   - File: `client/src/pages/Dashboard.tsx` or `App.tsx`
+   - Confirm:
+     - `Add Project` button calls `POST /api/projects/create`
+     - Project selector updates state
+     - Tabs (Progress, Input, Logs, etc.) render correct components
+
+2. **CHECK PROJECT CREATION API**
+   - File: `server/routes/projects_list.ts`
+   - Confirm:
+     - POST `/api/projects/create` receives `name`, `scaffoldType`, `autoMode`
+     - Project ID generated correctly (timestamp not corrupted)
+     - File written to `data/projects/`
+     - `startAutonomousExecution(projectId)` is triggered
+
+3. **CHECK INPUT INJECTION**
+   - File: `server/routes/input.ts`
+   - Confirm:
+     - POST `/api/input/:projectId` receives prompt
+     - Task enqueued as `service:service.input.injectPrompt`
+     - `taskId` returned in response
+
+4. **CHECK TASK EXECUTION**
+   - File: `server/autonomous/index.ts`
+   - Confirm:
+     - Agent loop is polling `data/queue/`
+     - Tasks are picked up and `executeTask()` is called
+     - Result is written to `.proof` and `output.json`
+
+5. **CHECK WEBSOCKET BROADCAST**
+   - File: `server/websocket.ts`
+   - Confirm:
+     - WebSocket server is initialized at `/ws`
+     - Events: `task.started`, `task.completed`, `task.failed`
+     - Project ID and task ID included in each payload
+
+6. **FRONTEND CONNECTION**
+   - File: `client/src/lib/websocket.ts`
+   - Confirm:
+     - Connects to `ws://localhost:5001/ws` or appropriate port
+     - Handles task events and updates Zustand
+
+7. **VALIDATION OUTPUT**
+   - Paste:
+     - Console log from browser showing WebSocket connection open
+     - Console log of POST `/api/projects/create` result
+     - Screenshot or content of one `.proof` file from real task
+     - Real output.json contents from scaffold, echo, or injected prompt
+
+---
+
+### RULES:
+- Do not use placeholder responses
+- Do not rely on status API or frontend console echoes
+- Only return real data from filesystem or task execution
+- If any route fails, trace and patch immediately
+
+Begin now. Confirm Titan is truly live. Then deploy.
