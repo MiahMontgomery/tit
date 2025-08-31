@@ -58,6 +58,68 @@ export class MemStorage implements IStorage {
     this.salesData = new Map();
     this.milestones = new Map();
     this.goals = new Map();
+    
+    // Add a test project for demonstration
+    const testProject: Project = {
+      id: "test-1",
+      name: "Test Project",
+      description: "Simple test project to demonstrate the 5-tab interface",
+      prompt: "Build a simple test project to show all tabs working",
+      status: "active",
+      createdAt: new Date()
+    };
+    this.projects.set("test-1", testProject);
+    
+    // Add test features
+    const feature1: Feature = {
+      id: "feature-1",
+      projectId: "test-1",
+      name: "User Interface",
+      description: "Build the main user interface components",
+      status: "in-progress",
+      createdAt: new Date()
+    };
+    const feature2: Feature = {
+      id: "feature-2", 
+      projectId: "test-1",
+      name: "Backend API",
+      description: "Create REST API endpoints",
+      status: "pending",
+      createdAt: new Date()
+    };
+    this.features.set("feature-1", feature1);
+    this.features.set("feature-2", feature2);
+    
+    // Add test message
+    const testMessage: Message = {
+      id: "msg-1",
+      projectId: "test-1", 
+      content: "Hello! I'm ready to help build your test project. What would you like to start with?",
+      sender: "assistant",
+      timestamp: new Date()
+    };
+    this.messages.set("msg-1", testMessage);
+    
+    // Add test log
+    const testLog: Log = {
+      id: "log-1",
+      projectId: "test-1",
+      action: "Project Created",
+      description: "Test project initialized with basic structure",
+      timestamp: new Date()
+    };
+    this.logs.set("log-1", testLog);
+    
+    // Add sales data
+    const testSales: SalesData = {
+      id: "sales-1",
+      projectId: "test-1",
+      messagesSent: 0,
+      contentCreated: 0,
+      income: 0,
+      createdAt: new Date()
+    };
+    this.salesData.set("test-1", testSales);
   }
 
   async getProjects(): Promise<Project[]> {

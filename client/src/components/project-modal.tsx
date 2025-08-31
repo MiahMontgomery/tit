@@ -69,16 +69,25 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-card border-border max-w-md">
+      <DialogContent 
+        className="max-w-md"
+        style={{
+          backgroundColor: '#0d0d0d',
+          borderColor: '#40e0d0',
+          border: '1px solid #40e0d0',
+          boxShadow: '0 0 8px rgba(64, 224, 208, 0.3)'
+        }}
+      >
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold">Create New Project</DialogTitle>
+            <DialogTitle className="text-xl font-bold" style={{ color: '#e0e0e0' }}>Create New Project</DialogTitle>
             <Button
               data-testid="button-close-modal"
               variant="ghost"
               size="sm"
               onClick={handleClose}
-              className="text-muted-foreground hover:text-foreground"
+              style={{ color: '#888888' }}
+              className="hover:bg-gray-800"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -87,7 +96,7 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="project-name" className="text-sm font-medium">
+            <Label htmlFor="project-name" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
               Project Name
             </Label>
             <Input
@@ -97,13 +106,17 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter project name"
-              className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+              style={{
+                backgroundColor: '#0e0e0e',
+                borderColor: '#333333',
+                color: '#e0e0e0'
+              }}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="project-prompt" className="text-sm font-medium">
+            <Label htmlFor="project-prompt" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
               Project Prompt
             </Label>
             <Textarea
@@ -113,7 +126,12 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe what you want to build..."
               rows={4}
-              className="bg-input border-border text-foreground placeholder:text-muted-foreground resize-none"
+              className="resize-none"
+              style={{
+                backgroundColor: '#0e0e0e',
+                borderColor: '#333333',
+                color: '#e0e0e0'
+              }}
               required
             />
           </div>
@@ -124,7 +142,11 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
               type="button"
               variant="outline"
               onClick={handleClose}
-              className="flex-1 border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="flex-1 hover:bg-gray-800"
+              style={{
+                borderColor: '#333333',
+                color: '#888888'
+              }}
             >
               Cancel
             </Button>
@@ -132,7 +154,11 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
               data-testid="button-create-project"
               type="submit"
               disabled={createProjectMutation.isPending}
-              className="flex-1 bg-primary text-primary-foreground hover:opacity-90"
+              className="flex-1 hover:opacity-90"
+              style={{
+                backgroundColor: '#40e0d0',
+                color: '#000000'
+              }}
             >
               {createProjectMutation.isPending ? "Creating..." : "Create Project"}
             </Button>
