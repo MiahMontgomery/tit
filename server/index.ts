@@ -1,71 +1,150 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import express from "express";
+import { createServer } from "http";
+import cors from "cors";
+import { testConnection } from "./core/repos/db.js";
+import { runner } from "./core/runner.js";
+import { startWs } from "./ws/index.js";
+import { puppeteerClient } from "./core/tools/puppeteer.js";
+import { logger } from "./core/tools/logger.js";
+import { requestId, logRequest } from "./middleware/requestId.js";
+import { generalRateLimit } from "./middleware/rateLimit.js";
+import routes from "./routes.js";
+import metricsRouter from "./api/metrics.js";
+import { incrementMetric } from "./api/metrics.js";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+const server = createServer(app);
 
+// Middleware
+app.use(requestId());
+app.use(logRequest());
+
+// CORS configuration
+const allowedOrigins = process.env.NODE_ENV === "production" 
+  ? [process.env.FRONTEND_URL || "https://titan-app.vercel.app"]
+  : true;
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Rate limiting
+app.use(generalRateLimit);
+
+// Request metrics
 app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
+  incrementMetric('requests');
   next();
 });
 
-(async () => {
-  const server = await registerRoutes(app);
+// Routes
+app.use(routes);
+app.use("/api/metrics", metricsRouter);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+// Error handling
+app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  incrementMetric('errors');
+  
+  logger.systemError("Express error", { 
+    error: error.message, 
+    stack: error.stack,
+    path: req.path,
+    method: req.method,
+    requestId: req.requestId
   });
+  
+  res.status(500).json({
+    success: false,
+    error: "Internal server error",
+    requestId: req.requestId
+  });
+});
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "Not found"
+  });
+});
+
+// Initialize and start server
+async function startServer() {
+  try {
+    // Test database connection
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      throw new Error("Database connection failed");
+    }
+
+    // Initialize Puppeteer
+    await puppeteerClient.initialize();
+
+    // Initialize WebSocket
+    startWs(server);
+
+    // Start the runner
+    await runner.start();
+
+    // Start HTTP server
+    const port = process.env.PORT || 3000;
+    server.listen(port, () => {
+      logger.systemInfo("Titan backend server started", { 
+        port, 
+        environment: process.env.NODE_ENV || "development" 
+      });
+      
+      console.log(`🚀 Titan backend running on port ${port}`);
+      console.log(`📊 Health check: http://localhost:${port}/health`);
+      console.log(`🔌 WebSocket: ws://localhost:${port}`);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+
+  } catch (error) {
+    logger.systemError("Failed to start server", { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    process.exit(1);
   }
+}
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+async function gracefulShutdown() {
+  logger.systemInfo("Graceful shutdown initiated");
+  
+  try {
+    // Stop accepting new connections
+    server.close(() => {
+      logger.systemInfo("HTTP server closed");
+    });
+
+    // Stop runner
+    await runner.stop();
+
+    // Close Puppeteer
+    await puppeteerClient.close();
+
+    // WebSocket will close automatically with server
+
+    // Close logger
+    logger.close();
+
+    logger.systemInfo("Graceful shutdown completed");
+    process.exit(0);
+
+  } catch (error) {
+    logger.systemError("Error during graceful shutdown", { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();

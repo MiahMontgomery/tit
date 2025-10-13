@@ -9,6 +9,7 @@ import { InputTab } from "@/components/tabs/input-tab";
 import { LogsTab } from "@/components/tabs/logs-tab";
 import { OutputTab } from "@/components/tabs/output-tab";
 import { SalesTab } from "@/components/tabs/sales-tab";
+import { DesktopCodeEditor } from "@/components/DesktopCodeEditor";
 import type { Project } from "@shared/schema";
 
 interface ExpandedProjectProps {
@@ -16,7 +17,7 @@ interface ExpandedProjectProps {
   onClose: () => void;
 }
 
-type TabName = "progress" | "input" | "logs" | "output" | "sales";
+type TabName = "progress" | "input" | "logs" | "output" | "sales" | "code";
 
 export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
   const [activeTab, setActiveTab] = useState<TabName>("progress");
@@ -56,12 +57,13 @@ export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
     { id: "logs", label: "Logs" },
     { id: "output", label: "Output" },
     { id: "sales", label: "Sales" },
+    { id: "code", label: "Code" },
   ] as const;
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "progress":
-        return <ProgressTab projectId={project.id} />;
+        return <ProgressTab projectId={project.id} pat={undefined} />;
       case "input":
         return <InputTab projectId={project.id} />;
       case "logs":
@@ -70,6 +72,8 @@ export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
         return <OutputTab projectId={project.id} />;
       case "sales":
         return <SalesTab projectId={project.id} />;
+      case "code":
+        return <DesktopCodeEditor projectId={project.id} />;
       default:
         return null;
     }

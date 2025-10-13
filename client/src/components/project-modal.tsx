@@ -1,14 +1,10 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { X } from "lucide-react";
-import type { InsertProject } from "@shared/schema";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Check, X } from 'lucide-react';
+import './project-modal.css';
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -18,153 +14,159 @@ interface ProjectModalProps {
 export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const createProjectMutation = useMutation({
-    mutationFn: async (data: InsertProject) => {
-      const response = await apiRequest("POST", "/api/projects", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      toast({
-        title: "Project created",
-        description: "Your project has been created successfully.",
-      });
-      handleClose();
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to create project. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !prompt.trim()) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in both project name and prompt.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createProjectMutation.mutate({
-      name: name.trim(),
-      prompt: prompt.trim(),
-      description: "No description"
-    });
-  };
+  const [elevenLabsApiKey, setElevenLabsApiKey] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleClose = () => {
     setName("");
     setPrompt("");
+    setElevenLabsApiKey("");
     onClose();
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !prompt.trim()) return;
+
+    setIsLoading(true);
+    try {
+      // Create project directly - backend will generate features and hierarchy
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: `Project: ${name}\n\n${prompt}`,
+          prompt: prompt.trim(),
+          elevenLabsApiKey: elevenLabsApiKey.trim()
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create project');
+      }
+
+      const project = await response.json();
+      console.log('Project created:', project);
+      
+      // Close modal and refresh projects list
+      handleClose();
+      window.location.reload(); // Simple refresh for now
+    } catch (error) {
+      console.error('Error creating project:', error);
+      alert('Failed to create project. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent 
-        className="max-w-md"
-        style={{
-          backgroundColor: '#0d0d0d',
-          borderColor: '#40e0d0',
-          border: '1px solid #40e0d0',
-          boxShadow: '0 0 8px rgba(64, 224, 208, 0.3)'
-        }}
-      >
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold" style={{ color: '#e0e0e0' }}>Create New Project</DialogTitle>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+      <div className="bg-background border rounded-lg shadow-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold" style={{ color: '#e0e0e0' }}>Create New Project</h2>
             <Button
-              data-testid="button-close-modal"
               variant="ghost"
               size="sm"
               onClick={handleClose}
               style={{ color: '#888888' }}
-              className="hover:bg-gray-800"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
-        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="project-name" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
-              Project Name
-            </Label>
-            <Input
-              id="project-name"
-              data-testid="input-project-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter project name"
-              style={{
-                backgroundColor: '#0e0e0e',
-                borderColor: '#333333',
-                color: '#e0e0e0'
-              }}
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <Label htmlFor="name" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
+                Project Name
+              </Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter project name"
+                className="mt-1"
+                style={{ 
+                  backgroundColor: '#111111', 
+                  borderColor: '#333333', 
+                  color: '#e0e0e0' 
+                }}
+                required
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="project-prompt" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
-              Project Prompt
-            </Label>
-            <Textarea
-              id="project-prompt"
-              data-testid="textarea-project-prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe what you want to build..."
-              rows={4}
-              className="resize-none"
-              style={{
-                backgroundColor: '#0e0e0e',
-                borderColor: '#333333',
-                color: '#e0e0e0'
-              }}
-              required
-            />
-          </div>
+            <div>
+              <Label htmlFor="prompt" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
+                Project Description
+              </Label>
+              <Textarea
+                id="prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe what you want to build..."
+                className="mt-1 min-h-[120px]"
+                style={{ 
+                  backgroundColor: '#111111', 
+                  borderColor: '#333333', 
+                  color: '#e0e0e0' 
+                }}
+                required
+              />
+            </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button
-              data-testid="button-cancel-project"
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              className="flex-1 hover:bg-gray-800"
-              style={{
-                borderColor: '#333333',
-                color: '#888888'
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              data-testid="button-create-project"
-              type="submit"
-              disabled={createProjectMutation.isPending}
-              className="flex-1 hover:opacity-90"
-              style={{
-                backgroundColor: '#40e0d0',
-                color: '#000000'
-              }}
-            >
-              {createProjectMutation.isPending ? "Creating..." : "Create Project"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <div>
+              <Label htmlFor="elevenLabsApiKey" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
+                ElevenLabs API Key (Optional)
+              </Label>
+              <Input
+                id="elevenLabsApiKey"
+                type="password"
+                value={elevenLabsApiKey}
+                onChange={(e) => setElevenLabsApiKey(e.target.value)}
+                placeholder="Enter your ElevenLabs API key for voice features"
+                className="mt-1"
+                style={{ 
+                  backgroundColor: '#111111', 
+                  borderColor: '#333333', 
+                  color: '#e0e0e0' 
+                }}
+              />
+              <p className="text-xs mt-1" style={{ color: '#888888' }}>
+                Get your API key from <a href="https://elevenlabs.io" target="_blank" rel="noopener noreferrer" style={{ color: '#40e0d0' }}>elevenlabs.io</a> to enable voice communication with Jason
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                style={{
+                  borderColor: '#333333',
+                  color: '#e0e0e0'
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                style={{
+                  backgroundColor: '#40e0d0',
+                  color: '#000000'
+                }}
+              >
+                {isLoading ? 'Creating...' : 'Create Project'}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

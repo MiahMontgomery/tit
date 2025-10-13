@@ -1,0 +1,111 @@
+[2025-10-12T21:37:10.746Z] [ERROR] [System] Failed to start server {"error":"Database connection failed"}
+[2025-10-12T21:37:14.307Z] [ERROR] [System] Failed to start server {"error":"Database connection failed"}
+[2025-10-12T21:47:06.699Z] [INFO] [System] WebSocket server initialized
+[2025-10-12T21:47:06.699Z] [INFO] [System] Starting Titan runner {"interval":60000}
+[2025-10-12T21:47:06.699Z] [INFO] [System] Starting runner tick
+[2025-10-12T21:47:06.699Z] [ERROR] [System] Runner tick failed {"error":"Cannot read properties of null (reading 'select')","duration":0}
+[2025-10-12T21:47:06.700Z] [INFO] [System] Titan backend server started {"port":3000,"environment":"development"}
+[2025-10-12T21:47:14.556Z] [INFO] [System] Creating new project {"name":"Prod Test","prompt":"Build a simple authentication app"}
+[2025-10-12T21:47:14.556Z] [ERROR] [System] Failed to create project {"error":"Cannot read properties of null (reading 'insert')"}
+[2025-10-12T21:48:06.700Z] [INFO] [System] Starting runner tick
+[2025-10-12T21:48:06.701Z] [ERROR] [System] Runner tick failed {"error":"Cannot read properties of null (reading 'select')","duration":1}
+[2025-10-12T21:48:27.998Z] [INFO] [System] Graceful shutdown initiated
+[2025-10-12T21:48:27.998Z] [INFO] [System] Titan runner stopped
+[2025-10-12T21:48:27.999Z] [INFO] [System] HTTP server closed
+[2025-10-12T21:48:59.560Z] [INFO] [System] WebSocket server initialized
+[2025-10-12T21:48:59.560Z] [INFO] [System] Starting Titan runner {"interval":60000}
+[2025-10-12T21:48:59.560Z] [INFO] [System] Starting runner tick
+[2025-10-12T21:48:59.560Z] [INFO] [System] Found 0 active projects
+[2025-10-12T21:48:59.560Z] [INFO] [System] No active projects to process
+[2025-10-12T21:48:59.561Z] [INFO] [System] Titan backend server started {"port":3000,"environment":"development"}
+[2025-10-12T21:49:09.618Z] [INFO] [System] Creating new project {"name":"Prod Test","prompt":"Build a simple authentication app"}
+[2025-10-12T21:49:09.618Z] [INFO] [System] Project created successfully {"projectId":"mock_project_1760305749618"}
+[2025-10-12T21:49:09.621Z] [INFO] [Project:mock_project_1760305749618] Generating project plan {"prompt":"Build a simple authentication app"}
+[2025-10-12T21:49:09.621Z] [INFO] [Project:mock_project_1760305749618] Project plan generated and inserted {"features":1,"milestones":1,"goals":2}
+[2025-10-12T21:49:09.625Z] [INFO] [Project:mock_project_1760305749618] Creating new task {"type":"screenshot","payload":{"url":"https://example.com"}}
+[2025-10-12T21:49:09.625Z] [ERROR] [Project:mock_project_1760305749618] Failed to create task {"error":"Cannot read properties of null (reading 'insert')"}
+[2025-10-12T21:49:59.561Z] [INFO] [System] Starting runner tick
+[2025-10-12T21:49:59.562Z] [INFO] [System] Found 1 active projects
+[2025-10-12T21:49:59.562Z] [INFO] [Project:mock_project_1760305749618] Processing project
+[2025-10-12T21:49:59.562Z] [INFO] [Project:mock_project_1760305749618] Starting project tick
+[2025-10-12T21:49:59.562Z] [ERROR] [Project:mock_project_1760305749618] Project tick failed {"error":"Cannot read properties of null (reading 'select')"}
+[2025-10-12T21:49:59.562Z] [INFO] [Project:mock_project_1760305749618] No tasks to process
+[2025-10-12T21:49:59.562Z] [INFO] [System] Runner tick completed {"total":1,"successful":0,"failed":0,"duration":1}
+[2025-10-12T21:50:36.749Z] [INFO] [System] Graceful shutdown initiated
+[2025-10-12T21:50:36.750Z] [INFO] [System] Titan runner stopped
+[2025-10-12T21:50:36.750Z] [INFO] [System] HTTP server closed
+[2025-10-12T21:50:41.992Z] [INFO] [System] WebSocket server initialized
+[2025-10-12T21:50:41.993Z] [INFO] [System] Starting Titan runner {"interval":60000}
+[2025-10-12T21:50:41.993Z] [INFO] [System] Starting runner tick
+[2025-10-12T21:50:41.993Z] [INFO] [System] Found 0 active projects
+[2025-10-12T21:50:41.993Z] [INFO] [System] No active projects to process
+[2025-10-12T21:50:41.993Z] [INFO] [System] Titan backend server started {"port":3000,"environment":"development"}
+[2025-10-12T21:50:50.686Z] [INFO] [System] Creating new project {"name":"Prod Test","prompt":"Build a simple authentication app"}
+[2025-10-12T21:50:50.686Z] [INFO] [System] Project created successfully {"projectId":"mock_project_1760305850686"}
+[2025-10-12T21:50:50.690Z] [INFO] [Project:mock_project_1760305850686] Generating project plan {"prompt":"Build a simple authentication app"}
+[2025-10-12T21:50:50.690Z] [INFO] [Project:mock_project_1760305850686] Project plan generated and inserted {"features":1,"milestones":1,"goals":2}
+[2025-10-12T21:50:50.695Z] [INFO] [Project:mock_project_1760305850686] Creating new task {"type":"screenshot","payload":{"url":"https://example.com"}}
+[2025-10-12T21:50:50.695Z] [INFO] [Project:mock_project_1760305850686] Task created successfully {"taskId":"mock_task_1760305850695"}
+[2025-10-12T21:50:55.700Z] [INFO] [Project:mock_project_1760305850686] Getting proofs {"limit":50}
+[2025-10-12T21:50:55.701Z] [ERROR] [Project:mock_project_1760305850686] Failed to get proofs {"error":"Cannot read properties of null (reading 'select')"}
+[2025-10-12T21:51:28.374Z] [INFO] [System] Graceful shutdown initiated
+[2025-10-12T21:51:28.375Z] [INFO] [System] Titan runner stopped
+[2025-10-12T21:51:28.375Z] [INFO] [System] HTTP server closed
+[2025-10-12T21:51:36.263Z] [INFO] [System] WebSocket server initialized
+[2025-10-12T21:51:36.263Z] [INFO] [System] Starting Titan runner {"interval":60000}
+[2025-10-12T21:51:36.263Z] [INFO] [System] Starting runner tick
+[2025-10-12T21:51:36.263Z] [INFO] [System] Found 0 active projects
+[2025-10-12T21:51:36.263Z] [INFO] [System] No active projects to process
+[2025-10-12T21:51:36.264Z] [INFO] [System] Titan backend server started {"port":3000,"environment":"development"}
+[2025-10-12T21:51:45.015Z] [INFO] [System] Creating new project {"name":"Prod Test","prompt":"Build a simple authentication app"}
+[2025-10-12T21:51:45.015Z] [INFO] [System] Project created successfully {"projectId":"mock_project_1760305905015"}
+[2025-10-12T21:51:45.019Z] [INFO] [Project:mock_project_1760305905015] Generating project plan {"prompt":"Build a simple authentication app"}
+[2025-10-12T21:51:45.019Z] [INFO] [Project:mock_project_1760305905015] Project plan generated and inserted {"features":1,"milestones":1,"goals":2}
+[2025-10-12T21:51:45.023Z] [INFO] [Project:mock_project_1760305905015] Creating new task {"type":"screenshot","payload":{"url":"https://example.com"}}
+[2025-10-12T21:51:45.023Z] [INFO] [Project:mock_project_1760305905015] Task created successfully {"taskId":"mock_task_1760305905023"}
+[2025-10-12T21:51:50.030Z] [INFO] [Project:mock_project_1760305905015] Getting proofs {"limit":50}
+[2025-10-12T21:51:50.035Z] [INFO] [Project:mock_project_1760305905015] Scoring project goals
+[2025-10-12T21:51:50.035Z] [ERROR] [Project:mock_project_1760305905015] Failed to score goals {"error":"Cannot read properties of null (reading 'select')"}
+[2025-10-12T21:52:17.190Z] [INFO] [System] Graceful shutdown initiated
+[2025-10-12T21:52:17.191Z] [INFO] [System] Titan runner stopped
+[2025-10-12T21:52:17.191Z] [INFO] [System] HTTP server closed
+[2025-10-12T21:52:22.374Z] [INFO] [System] WebSocket server initialized
+[2025-10-12T21:52:22.374Z] [INFO] [System] Starting Titan runner {"interval":60000}
+[2025-10-12T21:52:22.374Z] [INFO] [System] Starting runner tick
+[2025-10-12T21:52:22.374Z] [INFO] [System] Found 0 active projects
+[2025-10-12T21:52:22.374Z] [INFO] [System] No active projects to process
+[2025-10-12T21:52:22.375Z] [INFO] [System] Titan backend server started {"port":3000,"environment":"development"}
+[2025-10-12T21:52:31.460Z] [INFO] [System] Creating new project {"name":"Prod Test","prompt":"Build a simple authentication app"}
+[2025-10-12T21:52:31.461Z] [INFO] [System] Project created successfully {"projectId":"mock_project_1760305951461"}
+[2025-10-12T21:52:31.465Z] [INFO] [Project:mock_project_1760305951461] Generating project plan {"prompt":"Build a simple authentication app"}
+[2025-10-12T21:52:31.465Z] [INFO] [Project:mock_project_1760305951461] Project plan generated and inserted {"features":1,"milestones":1,"goals":2}
+[2025-10-12T21:52:31.469Z] [INFO] [Project:mock_project_1760305951461] Creating new task {"type":"screenshot","payload":{"url":"https://example.com"}}
+[2025-10-12T21:52:31.469Z] [INFO] [Project:mock_project_1760305951461] Task created successfully {"taskId":"mock_task_1760305951469"}
+[2025-10-12T21:52:36.476Z] [INFO] [Project:mock_project_1760305951461] Getting proofs {"limit":50}
+[2025-10-12T21:52:36.481Z] [INFO] [Project:mock_project_1760305951461] Scoring project goals
+[2025-10-12T21:52:36.481Z] [INFO] [Project:mock_project_1760305951461] Goals scored successfully (mock mode) {"totalGoals":2,"topGoals":2}
+[2025-10-12T21:52:36.515Z] [INFO] [System] WebSocket client connected
+[2025-10-12T21:52:36.518Z] [INFO] [System] WebSocket client disconnected
+[2025-10-12T21:52:48.843Z] [INFO] [System] Graceful shutdown initiated
+[2025-10-12T21:52:48.843Z] [INFO] [System] Titan runner stopped
+[2025-10-12T21:52:48.844Z] [INFO] [System] HTTP server closed
+[2025-10-12T22:11:17.340Z] [INFO] [System] WebSocket server initialized
+[2025-10-12T22:11:17.340Z] [INFO] [System] Starting Titan runner {"interval":60000}
+[2025-10-12T22:11:17.341Z] [INFO] [System] Starting runner tick
+[2025-10-12T22:11:17.341Z] [INFO] [System] Found 0 active projects
+[2025-10-12T22:11:17.341Z] [INFO] [System] No active projects to process
+[2025-10-12T22:11:17.342Z] [INFO] [System] Titan backend server started {"port":3000,"environment":"development"}
+[2025-10-12T22:11:26.346Z] [INFO] [System] Creating new project {"name":"Prod Test","prompt":"Build a simple authentication app"}
+[2025-10-12T22:11:26.346Z] [INFO] [System] Project created successfully {"projectId":"mock_project_1760307086346"}
+[2025-10-12T22:11:26.349Z] [INFO] [Project:mock_project_1760307086346] Generating project plan {"prompt":"Build a simple authentication app"}
+[2025-10-12T22:11:26.349Z] [INFO] [Project:mock_project_1760307086346] Project plan generated and inserted {"features":1,"milestones":1,"goals":2}
+[2025-10-12T22:11:26.354Z] [INFO] [Project:mock_project_1760307086346] Creating new task {"type":"screenshot","payload":{"url":"https://example.com"}}
+[2025-10-12T22:11:26.354Z] [INFO] [Project:mock_project_1760307086346] Task created successfully {"taskId":"mock_task_1760307086354"}
+[2025-10-12T22:11:31.360Z] [INFO] [Project:mock_project_1760307086346] Getting proofs {"limit":50}
+[2025-10-12T22:11:31.364Z] [INFO] [Project:mock_project_1760307086346] Scoring project goals
+[2025-10-12T22:11:31.365Z] [INFO] [Project:mock_project_1760307086346] Goals scored successfully (mock mode) {"totalGoals":2,"topGoals":2}
+[2025-10-12T22:11:31.401Z] [INFO] [System] WebSocket client connected
+[2025-10-12T22:11:31.405Z] [INFO] [System] WebSocket client disconnected
+[2025-10-12T22:11:43.123Z] [INFO] [System] Graceful shutdown initiated
+[2025-10-12T22:11:43.123Z] [INFO] [System] Titan runner stopped
+[2025-10-12T22:11:43.123Z] [INFO] [System] HTTP server closed

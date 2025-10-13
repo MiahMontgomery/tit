@@ -1,0 +1,6 @@
+/* Simple modal styles - no complex overrides needed */
+.project-modal-override {
+  /* This class is no longer needed but kept for compatibility */
+}
+
+/* REMOVED CONFLICTING CSS RULE - Inline styles now handle width */

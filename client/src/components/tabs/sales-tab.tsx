@@ -1,121 +1,170 @@
-import { useQuery } from "@tanstack/react-query";
-import { MessageSquare, FileText, DollarSign, TrendingUp, ShoppingCart, CreditCard } from "lucide-react";
-import type { SalesData } from "@shared/schema";
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown, 
+  Users, 
+  MessageSquare, 
+  Calendar,
+  Target,
+  BarChart3,
+  PieChart,
+  Activity,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  XCircle
+} from 'lucide-react';
+
+interface SalesMetrics {
+  daily: {
+    messagesSent: number;
+    contentCreated: number;
+    revenueGenerated: number;
+    contactsReached: number;
+    responseRate: number;
+  };
+  weekly: {
+    totalRevenue: number;
+    growthRate: number;
+    activeProjects: number;
+    completedMilestones: number;
+  };
+  monthly: {
+    projectedRevenue: number;
+    targetRevenue: number;
+    completionRate: number;
+    efficiencyScore: number;
+  };
+}
+
+interface RevenueAction {
+  id: string;
+  type: 'sale' | 'subscription' | 'service' | 'product';
+  description: string;
+  amount: number;
+  timestamp: string;
+  status: 'completed' | 'pending' | 'failed';
+  projectId?: string;
+}
 
 interface SalesTabProps {
   projectId: string;
 }
 
 export function SalesTab({ projectId }: SalesTabProps) {
-  const { data: salesData, isLoading } = useQuery<SalesData>({
-    queryKey: ['/api/projects', projectId, 'sales'],
+  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+
+  // Fetch sales metrics
+  const { data: salesMetrics, isLoading } = useQuery({
+    queryKey: ['sales-metrics', projectId],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects/${projectId}/sales`);
+      if (!response.ok) throw new Error('Failed to fetch sales metrics');
+      return response.json();
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(cents / 100);
+  // Fetch revenue actions
+  const { data: revenueActions = [] } = useQuery({
+    queryKey: ['revenue-actions', projectId],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects/${projectId}/revenue-actions`);
+      if (!response.ok) throw new Error('Failed to fetch revenue actions');
+      return response.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'pending': return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'failed': return <XCircle className="h-4 w-4 text-red-500" />;
+      default: return <AlertCircle className="h-4 w-4 text-gray-500" />;
+    }
   };
 
-  // Mock sales activities for demonstration
-  const mockActivities: Array<{
-    type: string;
-    description: string;
-    timestamp: string;
-    amount: string;
-  }> = [
-    // No activities - empty state
-  ];
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-800 text-gray-200 border-gray-600';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'sale': return <DollarSign className="h-4 w-4" />;
+      case 'subscription': return <TrendingUp className="h-4 w-4" />;
+      case 'service': return <Users className="h-4 w-4" />;
+      case 'product': return <Target className="h-4 w-4" />;
+      default: return <DollarSign className="h-4 w-4" />;
+    }
+  };
 
   if (isLoading) {
     return (
-      <div data-testid="sales-loading" className="text-center py-12">
-        <div style={{ color: '#888888' }}>Loading sales data...</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <span className="ml-2 text-gray-600">Loading sales data...</span>
       </div>
     );
   }
 
-  // Default empty data if none provided
-  const data = salesData || {
-    messagesSent: 0,
-    contentCreated: 0,
-    income: 0
+  const metrics = salesMetrics || {
+    daily: { messagesSent: 0, contentCreated: 0, revenueGenerated: 0, contactsReached: 0, responseRate: 0 },
+    weekly: { totalRevenue: 0, growthRate: 0, activeProjects: 0, completedMilestones: 0 },
+    monthly: { projectedRevenue: 0, targetRevenue: 0, completionRate: 0, efficiencyScore: 0 }
   };
 
   return (
-    <div data-testid="sales-content">
-      {/* Yesterday's Performance Header */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2" style={{ color: '#e0e0e0' }}>Yesterday's Performance</h3>
-        <p className="text-sm" style={{ color: '#888888' }}>Daily metrics and productivity overview</p>
-      </div>
-
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="border rounded-lg p-4" style={{ backgroundColor: '#0e0e0e', borderColor: '#333333' }}>
-          <div className="flex items-center gap-3 mb-2">
-            <MessageSquare className="w-5 h-5" style={{ color: '#40e0d0' }} />
-            <h4 className="text-sm font-medium" style={{ color: '#888888' }}>Messages Sent</h4>
-          </div>
-          <p data-testid="sales-messages-sent" className="text-2xl font-bold" style={{ color: '#40e0d0' }}>
-            {data.messagesSent}
-          </p>
-        </div>
-        
-        <div className="border rounded-lg p-4" style={{ backgroundColor: '#0e0e0e', borderColor: '#333333' }}>
-          <div className="flex items-center gap-3 mb-2">
-            <FileText className="w-5 h-5" style={{ color: '#40e0d0' }} />
-            <h4 className="text-sm font-medium" style={{ color: '#888888' }}>Content Created</h4>
-          </div>
-          <p data-testid="sales-content-created" className="text-2xl font-bold" style={{ color: '#40e0d0' }}>
-            {data.contentCreated}
-          </p>
-        </div>
-        
-        <div className="border rounded-lg p-4" style={{ backgroundColor: '#0e0e0e', borderColor: '#333333' }}>
-          <div className="flex items-center gap-3 mb-2">
-            <DollarSign className="w-5 h-5" style={{ color: '#00ff00' }} />
-            <h4 className="text-sm font-medium" style={{ color: '#888888' }}>Income Earned</h4>
-          </div>
-          <p data-testid="sales-income" className="text-2xl font-bold" style={{ color: '#00ff00' }}>
-            {formatCurrency(data.income || 0)}
-          </p>
+    <div className="h-full flex flex-col space-y-6 p-6" style={{ backgroundColor: '#050505' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold" style={{ color: '#e0e0e0' }}>Sales Dashboard</h2>
+          <p style={{ color: '#888888' }}>Revenue tracking and performance metrics</p>
         </div>
       </div>
 
-      {/* Recent Sales Activity */}
-      <div className="border rounded-lg p-4" style={{ backgroundColor: '#0e0e0e', borderColor: '#333333' }}>
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-5 h-5" style={{ color: '#40e0d0' }} />
-          <h4 className="text-lg font-semibold" style={{ color: '#e0e0e0' }}>Recent Sales Activity</h4>
-        </div>
-        
-        {mockActivities.length === 0 ? (
-          <div data-testid="sales-activity-empty" className="text-center py-8" style={{ color: '#888888' }}>
-            No sales activity recorded yet. Revenue tracking will appear here once transactions begin.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {mockActivities.map((activity, index) => (
-              <div key={index} className="flex items-center gap-3 p-3 rounded" style={{ backgroundColor: '#0d0d0d' }}>
-                {activity.type === 'sale' ? (
-                  <ShoppingCart className="w-4 h-4" style={{ color: '#00ff00' }} />
-                ) : (
-                  <CreditCard className="w-4 h-4" style={{ color: '#40e0d0' }} />
-                )}
-                <div className="flex-1">
-                  <p className="text-sm" style={{ color: '#e0e0e0' }}>{activity.description}</p>
-                  <p className="text-xs" style={{ color: '#666666' }}>{activity.timestamp}</p>
-                </div>
-                <span className="text-sm font-medium" style={{ color: '#00ff00' }}>
-                  {activity.amount}
-                </span>
+      {/* Not Integrated Message */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <DollarSign className="h-16 w-16 mx-auto mb-4" style={{ color: '#40e0d0' }} />
+          <h3 className="text-xl font-semibold mb-2" style={{ color: '#e0e0e0' }}>Sales Integration Not Available</h3>
+          <p style={{ color: '#888888' }}>
+            Sales metrics will be available once payment processing and revenue tracking are integrated.
+          </p>
+          <div className="mt-4 p-4 rounded-lg border" style={{ 
+            backgroundColor: '#0f0f0f', 
+            borderColor: '#333333' 
+          }}>
+            <h4 className="text-lg font-medium mb-2" style={{ color: '#e0e0e0' }}>Integration Status</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                <span style={{ color: '#888888' }}>Payment Processing: Not Connected</span>
               </div>
-            ))}
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                <span style={{ color: '#888888' }}>Revenue Tracking: Not Connected</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                <span style={{ color: '#888888' }}>Customer Analytics: Not Connected</span>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
+
     </div>
   );
 }

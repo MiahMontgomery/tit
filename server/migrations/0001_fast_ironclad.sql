@@ -1,0 +1,1 @@
+ALTER TABLE "goals" ADD COLUMN "score" integer DEFAULT 0;

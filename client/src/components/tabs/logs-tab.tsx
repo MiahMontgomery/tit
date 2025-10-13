@@ -7,8 +7,20 @@ interface LogsTabProps {
 }
 
 export function LogsTab({ projectId }: LogsTabProps) {
-  const { data: logs = [], isLoading } = useQuery<Log[]>({
+  const { data: logs = [], isLoading, error } = useQuery<Log[]>({
     queryKey: ['/api/projects', projectId, 'logs'],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects/${projectId}/logs`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          return []; // Return empty array for missing project
+        }
+        throw new Error('Failed to fetch logs');
+      }
+      return response.json();
+    },
+    refetchInterval: 5000, // Real-time updates
+    retry: false, // Don't retry on 404
   });
 
   const formatTimestamp = (timestamp: Date) => {
@@ -39,6 +51,16 @@ export function LogsTab({ projectId }: LogsTabProps) {
     return (
       <div data-testid="logs-loading" className="text-center py-12">
         <div style={{ color: '#888888' }}>Loading logs...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div data-testid="logs-error" className="text-center py-12">
+        <div style={{ color: '#ff6b6b' }}>
+          Failed to load logs. Please try refreshing.
+        </div>
       </div>
     );
   }

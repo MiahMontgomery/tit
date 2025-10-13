@@ -7,8 +7,9 @@ import { ExpandedProject } from "@/components/expanded-project";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Project } from "@shared/schema";
+import Dashboard from "@/components/dashboard";
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
@@ -34,6 +35,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#050505', color: '#e0e0e0' }}>
+      {/* Health Banner */}
+      
       {/* Header */}
       <header className="flex items-center justify-between p-6 border-b" style={{ borderColor: '#333333' }}>
         <div className="flex items-center gap-3">
@@ -61,30 +64,7 @@ export default function Dashboard() {
         {selectedProject ? (
           <ExpandedProject project={selectedProject} onClose={handleProjectClose} />
         ) : (
-          <>
-            {projects.length === 0 ? (
-              /* Empty State */
-              <div className="flex flex-col items-center justify-center min-h-96 text-center">
-                <p className="text-lg mb-6" style={{ color: '#888888' }}>
-                  No projects yet. Click "Add Project" to begin.
-                </p>
-              </div>
-            ) : (
-              /* Projects Row */
-              <div>
-                <div className="flex gap-6 overflow-x-auto pb-4">
-                  {projects.map((project) => (
-                    <div key={project.id} className="flex-shrink-0 w-80">
-                      <ProjectCard
-                        project={project}
-                        onSelect={handleProjectSelect}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          <Dashboard />
         )}
       </main>
 

@@ -4,23 +4,23 @@
 
 :root {
   --background: #050505;
-  --foreground: #e0e0e0;
-  --card: transparent;
-  --card-foreground: #e0e0e0;
-  --popover: #0f0f0f;
-  --popover-foreground: #e0e0e0;
+  --foreground: #f0f0f0;
+  --card: #0f0f0f;
+  --card-foreground: #f0f0f0;
+  --popover: #1a1a1a;
+  --popover-foreground: #f0f0f0;
   --primary: #40e0d0;
   --primary-foreground: #000000;
-  --secondary: #00ff00;
-  --secondary-foreground: #000000;
-  --muted: #1f1f1f;
+  --secondary: #0a84ff;
+  --secondary-foreground: #f0f0f0;
+  --muted: #1a1a1a;
   --muted-foreground: #888888;
   --accent: #40e0d0;
   --accent-foreground: #000000;
   --destructive: hsl(0, 84%, 60%);
-  --destructive-foreground: hsl(0, 0%, 98%);
+  --destructive-foreground: #f0f0f0;
   --border: #333333;
-  --input: #0f0f0f;
+  --input: #1a1a1a;
   --ring: #40e0d0;
   --chart-1: hsl(180, 100%, 50%);
   --chart-2: hsl(123, 61%, 52%);
@@ -105,19 +105,26 @@
 
   html {
     background: #050505 !important;
-    color: #e0e0e0 !important;
+    color: #f0f0f0 !important;
   }
   
   body {
     @apply font-sans antialiased;
     background: #050505 !important;
-    color: #e0e0e0 !important;
+    color: #f0f0f0 !important;
   }
 }
 
 /* Custom glow effects for project cards */
 .glow-border {
   box-shadow: 0 0 0 1px hsl(180, 100%, 50%), 0 0 8px hsl(180, 100%, 50% / 0.3);
+}
+
+/* Text overflow handling */
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .glow-border-active {
