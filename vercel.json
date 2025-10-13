@@ -1,0 +1,13 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/public",
+  "ignoreCommand": "echo Using frontend-only deploy on Vercel",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  }
+}
+
+
