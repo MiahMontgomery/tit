@@ -1,6 +1,7 @@
 {
   "framework": "vite",
-  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build:frontend",
   "outputDirectory": "dist/public",
   "ignoreCommand": "echo Using frontend-only deploy on Vercel",
   "git": {
