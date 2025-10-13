@@ -6,7 +6,7 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "ignoreCommand": "echo Using frontend-only deploy on Vercel",
+
   "git": {
     "deploymentEnabled": {
       "main": true
