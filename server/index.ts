@@ -1,6 +1,8 @@
 import express from "express";
 import { createServer } from "http";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import { testConnection } from "./core/repos/db.js";
 import { runner } from "./core/runner.js";
 import { startWs } from "./ws/index.js";
@@ -14,6 +16,7 @@ import { incrementMetric } from "./api/metrics.js";
 
 const app = express();
 const server = createServer(app);
+
 
 // Middleware
 app.use(requestId());
@@ -46,7 +49,18 @@ app.use(routes);
 app.use("/api/metrics", metricsRouter);
 
 // Error handling
-app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+
+  
+if (process.env.NODE_ENV === "production") {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const publicPath = path.join(__dirname, "../public");
+  app.use(express.static(publicPath));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(publicPath, "index.html"));
+  });
+}
+p.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   incrementMetric('errors');
   
   logger.systemError("Express error", { 
@@ -55,7 +69,7 @@ app.use((error: Error, req: express.Request, res: express.Response, next: expres
     path: req.path,
     method: req.method,
     requestId: req.requestId
-  });
+  })
   
   res.status(500).json({
     success: false,
