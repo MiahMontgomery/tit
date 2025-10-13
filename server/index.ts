@@ -54,13 +54,13 @@ app.use("/api/metrics", metricsRouter);
 if (process.env.NODE_ENV === "production") {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  const publicPath = path.join(__dirname, "../public");
+  const publicPath = path.join(__dirname, "public");
   app.use(express.static(publicPath));
   app.get("*", (_req, res) => {
     res.sendFile(path.join(publicPath, "index.html"));
   });
 }
-p.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   incrementMetric('errors');
   
   logger.systemError("Express error", { 
