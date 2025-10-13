@@ -3,6 +3,9 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build:frontend",
   "outputDirectory": "dist/public",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "ignoreCommand": "echo Using frontend-only deploy on Vercel",
   "git": {
     "deploymentEnabled": {
