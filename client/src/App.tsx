@@ -6,15 +6,20 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import ProjectPage from "@/pages/project";
 import NotFound from "@/pages/not-found";
+import PersonasPage from "@/pages/personas";
+import PersonaPage from "@/pages/persona";
+    
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/projects/:id" component={ProjectPage} />
-      <Route component={NotFound} />
-    </Switch>
-  );
+
+          <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/projects/:id" component={ProjectPage} />
+        <Route path="/personas" component={PersonasPage} />
+        <Route path="/personas/:id" component={PersonaPage} />
+        <Route component={NotFound} />
+      </Switch>
 }
 
 function App() {
