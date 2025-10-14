@@ -5,7 +5,8 @@ import { ProjectModal } from "@/components/project-modal";
 import { ProjectCard } from "@/components/project-card";
 import { ExpandedProject } from "@/components/expanded-project";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
+import { Link } from "wouter";
 import type { Project } from "@shared/schema";
 import Dashboard from "@/components/dashboard";
 
@@ -43,20 +44,38 @@ export default function DashboardPage() {
           <TitanLogo />
           <h1 className="text-2xl font-bold" style={{ color: '#40e0d0' }}>TITAN</h1>
         </div>
-        <Button
-          data-testid="button-add-project"
-          onClick={() => setIsModalOpen(true)}
-          variant="outline"
-          className="flex items-center gap-2 transition-all duration-200"
-          style={{
-            borderColor: '#40e0d0',
-            color: '#40e0d0',
-            backgroundColor: 'transparent'
-          }}
-        >
-          <Plus className="w-4 h-4" />
-          Add Project
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Button to navigate to the personas page */}
+          <Link href="/personas" className="no-underline">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 transition-all duration-200"
+              style={{
+                borderColor: '#40e0d0',
+                color: '#40e0d0',
+                backgroundColor: 'transparent'
+              }}
+            >
+              <Users className="w-4 h-4" />
+              Personas
+            </Button>
+          </Link>
+          {/* Button to create a project */}
+          <Button
+            data-testid="button-add-project"
+            onClick={() => setIsModalOpen(true)}
+            variant="outline"
+            className="flex items-center gap-2 transition-all duration-200"
+            style={{
+              borderColor: '#40e0d0',
+              color: '#40e0d0',
+              backgroundColor: 'transparent'
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            Add Project
+          </Button>
+        </div>
       </header>
 
       {/* Main Content */}
