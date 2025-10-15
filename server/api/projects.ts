@@ -440,6 +440,50 @@ router.post("/:id/score-goals", async (req, res) => {
         totalScored: projectGoals.length
       }
     });
+  // GET /api/projects/:id/sales - Get sales metrics
+  router.get("/:id/sales", async (req, res) => {
+    try {
+      const { id } = req.params;
+      // Compute real sales metrics here; defaulting to zeros for now
+      const metrics = {
+        daily: {
+          messagesSent: 0,
+          contentCreated: 0,
+          revenueGenerated: 0,
+          contactsReached: 0,
+          responseRate: 0,
+        },
+        weekly: {
+          totalRevenue: 0,
+          growthRate: 0,
+          activeProjects: 0,
+          completedMilestones: 0,
+        },
+        monthly: {
+          projectedRevenue: 0,
+          targetRevenue: 0,
+          completionRate: 0,
+          efficiencyScore: 0,
+        },
+      };
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get sales metrics" });
+    }
+  });
+
+  // GET /api/projects/:id/revenue-actions - Get revenue actions
+  router.get("/:id/revenue-actions", async (req, res) => {
+    try {
+      const { id } = req.params;
+      // Retrieve revenue actions; default to empty array for now
+      const actions: any[] = [];
+      res.json(actions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get revenue actions" });
+    }
+  });
+
 
   } catch (error) {
     logger.projectError(req.params.id, "Failed to score goals", { 
