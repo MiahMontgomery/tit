@@ -1223,3 +1223,9 @@ interface ExecutionStep {
   command?: string;
 }
 
+// Temporary stub export to satisfy worker import
+export const projectExecutor = {
+  async executeTask(task: any) {
+    console.log('Stub executeTask called for', task);
+  },
+};
