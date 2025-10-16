@@ -1,4 +1,4 @@
-eimport { taskQueue } from './queue';
+import { taskQueue } from './queue';
 import { storage } from './storage';
 import { projectExecutor } from './services/project-executor';
 
