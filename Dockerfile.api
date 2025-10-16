@@ -13,6 +13,6 @@ COPY . .
 # optional build
 RUN npm run build --if-present
 
-ENV ODE_ENV=production
+ENV NODE_ENV=production
 EXPOSE 8080
 CMD ["npm","start"]
