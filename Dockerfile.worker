@@ -1,0 +1,10 @@
+FROM mcr.microsoft.com/playwright:v1.45.0-jammy
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY . .
+RUN npm run build --if-present
+
+ENV NODE_ENV=production
+CMD ["npm","run","start:worker"]
