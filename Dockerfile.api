@@ -6,6 +6,8 @@ COPY package*.json ./
 
 # install dependencies; ignore postinstall scripts (stops electron-builder)
 RUN npm ci --ignore-scripts
+# install cors
+RUN npm install cors
 
 # copy source
 COPY . .
