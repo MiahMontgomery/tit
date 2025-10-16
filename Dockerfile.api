@@ -11,6 +11,9 @@ RUN npm install cors
 
 # copy source
 COPY . .
+# install chrome for puppeteer
+RUN npx puppeteer browsers install
+
 
 # build only server using esbuild (skip vite build)
 RUN npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
