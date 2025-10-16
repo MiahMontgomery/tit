@@ -10,9 +10,6 @@ RUN npm ci --ignore-scripts
 # Copy the rest of the source code
 COPY . .
 
-# Build the worker if a build script exists (installs dev tools like vite/esbuild)
-RUN npm run build --if-present
-
 ENV NODE_ENV=production
 
-CMD ["npm","run","start:worker"]
+CMD ["npm","run","worker"]
