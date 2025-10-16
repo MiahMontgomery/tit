@@ -1,4 +1,4 @@
-import { taskQueue } from './queue';
+eimport { taskQueue } from './queue';
 import { storage } from './storage';
 import { projectExecutor } from './services/project-executor';
 
@@ -102,7 +102,9 @@ class Worker {
         break;
       default:
         // Use project executor for unknown task types
-        await projectExecutor.executeTask(task);
+//         await projectExecutor.executeTask(task);
+                console.log('Unknown task type: ' + task.type);
+
     }
   }
 
