@@ -20,7 +20,8 @@ function Router() {
         <Route path="/personas/:id" component={PersonaPage} />
         <Route component={NotFound} />
       </Switch>
-}
+);
+    }
 
 function App() {
   return (
