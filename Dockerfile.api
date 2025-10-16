@@ -1,0 +1,18 @@
+FROM node:20-bullseye
+WORKDIR /app
+
+# copy manifests first
+COPY package*.json ./
+
+# install prod deps; ignore postinstall (stops electron-builder)
+RUN npm ci --omit=dev --ignore-scripts
+
+# copy source
+COPY . .
+
+# optional build
+RUN npm run build --if-present
+
+ENV NODE_ENV=production
+EXPOSE 8080
+CMD ["npm","run","start:api"]
