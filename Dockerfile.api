@@ -1,11 +1,11 @@
-FROM node:20-bullseye
+.FROM node:20-bullseye
 WORKDIR /app
 
 # copy manifests first
 COPY package*.json ./
 
 # install prod deps; ignore postinstall (stops electron-builder)
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm ci --ignore-scripts
 
 # copy source
 COPY . .
