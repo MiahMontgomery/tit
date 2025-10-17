@@ -11,9 +11,9 @@ RUN npm ci --ignore-scripts
 
 COPY . .
 # build the worker
-RUN npm run build:worker --if-present
+RUN npx tsc -p tsconfig.json
 
 
 ENV NODE_ENV=production
 
-CMD ["npm","run","worker"]
+CMD ["node","dist/worker/index.js"]
