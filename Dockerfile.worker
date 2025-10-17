@@ -14,4 +14,4 @@ COPY . .
 
 ENV NODE_ENV=production
 
-CMD [["npx","tsx","server/worker.ts"]
+CMD ["node","./node_modules/.bin/tsx","server/worker.ts"]
