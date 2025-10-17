@@ -10,8 +10,8 @@ RUN npm ci --ignore-scripts
 # Copy the rest of the source code
 
 COPY . .
-# build the worker
-RUN npx tsc -p tsconfig.json
+# Build the worker using esbuild
+RUN npx esbuild server/worker.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/worker/index.js
 
 
 ENV NODE_ENV=production
