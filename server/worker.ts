@@ -93,6 +93,7 @@ class Worker {
         break;
       case 'test':
         await this.executeTest(task);
+
         break;
       case 'deploy':
         await this.executeDeploy(task);
@@ -215,17 +216,19 @@ class Worker {
     }
   }
 
-  private startHeartbeat() {
-    this.heartbeatInterval = setInterval(async () => {
-      if (this.currentTask) {
-        const success = await taskQueue.heartbeat(this.currentTask.id, WORKER_ID);
-        if (!success) {
-          console.warn(`⚠️ Heartbeat failed for task ${this.currentTask.id}`);
-          this.currentTask = undefined;
-        }
-      }
-    }, HEARTBEAT_INTERVAL);
-  }
+      private startHeartbeat() {
+        this.heartbeatInterval = setInterval(async () => {
+            console.log('heartbeat', new Date().toISOString());
+            if (this.currentTask) {
+                const success = await taskQueue.heartbeat(this.currentTask.id, WORKER_ID);
+                if (!success) {
+                    console.warn(`\u26A0\uFE0F Heartbeat failed for task ${this.currentTask.id}`);
+                    this.currentTask = undefined;
+                }
+            }
+        }, HEARTBEAT_INTERVAL);
+   
+  
 
   private async sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
