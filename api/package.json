@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node --enable-source-maps dist/server/index.js",
+    "dev": "tsx src/server/index.ts"
+  }
+}
