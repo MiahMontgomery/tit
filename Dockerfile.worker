@@ -10,10 +10,8 @@ RUN npm ci --ignore-scripts
 # Copy the rest of the source code
 
 COPY . .
-# Build the worker using esbuild
-RUN npx esbuild server/worker.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/worker/index.js
-
+# Build step removed; using tsx runtime
 
 ENV NODE_ENV=production
 
-CMD ["node","dist/worker/index.js"]
+CMD [["npx","tsx","server/worker.ts"]
