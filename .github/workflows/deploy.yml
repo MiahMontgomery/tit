@@ -1,0 +1,48 @@
+name: deploy-modeliv
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MODELIV_SSH_KEY }}
+
+      - name: Trust Host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.MODELIV_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Rsync bundle + remote deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.MODELIV_HOST }}
+          username: ${{ secrets.MODELIV_USER }}
+          script_stop: true
+          script: |
+            set -e
+            mkdir -p /opt/titan
+            cat > /opt/titan/deploy.sh <<'EOS'
+            #!/usr/bin/env bash
+            set -euo pipefail
+            APP_DIR="/opt/titan"
+            mkdir -p "$APP_DIR"
+            rsync -az --delete \
+              -e "ssh -o StrictHostKeyChecking=no" \
+              $GITHUB_WORKSPACE/docker-compose.prod.yml \
+              $GITHUB_WORKSPACE/ops/caddy/Caddyfile \
+              ${{ secrets.MODELIV_USER }}@${{ secrets.MODELIV_HOST }}:$APP_DIR/
+            docker compose -f "$APP_DIR/docker-compose.prod.yml" pull || true
+            docker compose -f "$APP_DIR/docker-compose.prod.yml" build --no-cache
+            docker compose -f "$APP_DIR/docker-compose.prod.yml" up -d --remove-orphans
+            docker system prune -f
+            EOS
+            chmod +x /opt/titan/deploy.sh
+            /opt/titan/deploy.sh
