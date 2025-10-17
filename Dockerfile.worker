@@ -8,7 +8,11 @@ COPY package*.json ./
 RUN npm ci --ignore-scripts
 
 # Copy the rest of the source code
+
 COPY . .
+# build the worker
+RUN npm run build:worker --if-present
+
 
 ENV NODE_ENV=production
 
