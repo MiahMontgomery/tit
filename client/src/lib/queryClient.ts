@@ -75,10 +75,12 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+   const result = await res.json();
+      return (result as any).data ?? result;);
   };
 
-export const queryClient = new QueryClient({
+export const queryClient = new Query
+  Client({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
