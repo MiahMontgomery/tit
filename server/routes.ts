@@ -6,8 +6,6 @@ import proofsRouter from "./api/proofs.js";
 
 const router = Router();
 
-
-
 // API routes
 router.use("/api/projects", projectsRouter);
 router.use("/api/messages", messagesRouter);
@@ -19,15 +17,31 @@ router.get("/health", (req, res) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 
 // Health check for uptime monitoring
 router.get("/healthz", (req, res) => {
-  res.json({ 
-    ok: true, 
-    ts: Date.now() 
+  res.json({
+    ok: true,
+    ts: Date.now(),
+  });
+});
+
+// Added API-prefixed health endpoints for proxies expecting /api/health* paths
+router.get("/api/healthz", (req, res) => {
+  res.json({
+    ok: true,
+    ts: Date.now(),
+  });
+});
+
+router.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
   });
 });
 
@@ -36,7 +50,7 @@ router.get("/", (req, res) => {
   res.json({
     message: "Titan Backend API",
     version: "1.0.0",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
