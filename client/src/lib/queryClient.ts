@@ -14,11 +14,11 @@ export async function apiRequest(
   pat?: string,
 ): Promise<Response> {
   const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
-  
+
   if (pat) {
     headers["Authorization"] = `Bearer ${pat}`;
   }
-  
+
   const res = await fetch(url, {
     method,
     headers,
@@ -61,26 +61,23 @@ export async function updateGoalState(goalId: string, state: string, pat?: strin
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
+export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-    });
+    async ({ queryKey }) => {
+      const res = await fetch(queryKey.join("/") as string, {
+        credentials: "include",
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null as any;
+      }
 
-    await throwIfResNotOk(res);
-   const result = await res.json();
-      return (result as any).data ?? result;);
-  };
+      await throwIfResNotOk(res);
+      const result = await res.json();
+      return (result as any).data ?? result;
+    };
 
-export const queryClient = new Query
-  Client({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
