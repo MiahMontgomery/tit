@@ -1,10 +1,11 @@
-morteliv.com, www.morteliv.com {
-  encode gzip
-  @api path /api* /api/*
-  handle @api {
-    reverse_proxy api:3000
-  }
-  handle {
-    reverse_proxy web:80
-  }
+# Combined Caddyfile to support both morteliv.com and Render subdomain
+morteliv.com, www.morteliv.com, tit-heaw.onrender.com {
+    encode gzip
+    @api path /api* /api/*
+    handle @api {
+        reverse_proxy api:3000
+    }
+    handle {
+        reverse_proxy web:80
+    }
 }
