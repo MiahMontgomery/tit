@@ -21,8 +21,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (including devDependencies) to allow the build step to run tools like Vite and esbuild.
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -30,7 +30,7 @@ COPY . .
 # Create storage directory
 RUN mkdir -p /data/storage
 
-# Build the application
+# Build the application (frontend and backend)
 RUN npm run build
 
 # Expose port
