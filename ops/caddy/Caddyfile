@@ -1,6 +1,6 @@
-modeliv.com, www.modeliv.com {
+morteliv.com, www.morteliv.com {
   encode gzip
-  @api path /api* /api/* 
+  @api path /api* /api/*
   handle @api {
     reverse_proxy api:3000
   }
