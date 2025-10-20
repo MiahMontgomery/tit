@@ -97,16 +97,6 @@ export class MemStorage implements IStorage {
     };
     this.projects.set("test-1", testProject);
     
-    // Add the Person.ai project that the frontend is looking for
-    const personAIProject: Project = {
-      id: "60962608-24df-4213-a283-8075d83d5ff2",
-      name: "Person.ai",
-      description: "Project: Person.ai\n\nBuild a comprehensive AI-powered personal assistant application",
-      prompt: "Build a comprehensive AI-powered personal assistant application",
-      status: "active",
-      createdAt: new Date()
-    };
-    this.projects.set("60962608-24df-4213-a283-8075d83d5ff2", personAIProject);
     
     // Add test features
     const feature1: Feature = {
@@ -508,9 +498,8 @@ export class MemStorage implements IStorage {
   private tasks = new Map<string, any>();
   private runs = new Map<string, any[]>();
   
-  // Memory and message storage
+  // Memory storage
   private memories = new Map<string, any[]>();
-  private projectMessages = new Map<string, any[]>();
 
   addTask(task: any): void {
     this.tasks.set(task.id, task);
@@ -562,56 +551,6 @@ export class MemStorage implements IStorage {
     return memoryWithId;
   }
 
-  // Project message methods (separate from regular messages)
-  async getProjectMessagesByProject(projectId: string, limit?: number): Promise<any[]> {
-    const messages = this.projectMessages.get(projectId) || [];
-    return limit ? messages.slice(-limit) : messages;
-  }
-
-  async getLogsByProject(projectId: string): Promise<any[]> {
-    // Get logs from the project's runs and attempts
-    const runs = this.getRunsByProject(projectId);
-    const logs: any[] = [];
-    
-    runs.forEach(run => {
-      // Add run logs
-      logs.push({
-        id: `run-${run.id}`,
-        action: `Run ${run.state}`,
-        description: `Project run ${run.state.toLowerCase()} with task ${run.currentTaskId || 'none'}`,
-        timestamp: run.createdAt,
-        type: 'run'
-      });
-      
-      // Add attempt logs
-      const attempts = this.getAttemptsByRun(run.id);
-      attempts.forEach(attempt => {
-        logs.push({
-          id: `attempt-${attempt.id}`,
-          action: `Attempt ${attempt.status}`,
-          description: attempt.message || `Attempt ${attempt.status.toLowerCase()}`,
-          timestamp: attempt.createdAt,
-          type: 'attempt'
-        });
-      });
-    });
-    
-    // Sort by timestamp (newest first)
-    return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }
-
-  async addProjectMessage(projectId: string, message: any): Promise<any> {
-    const messageWithId = { 
-      ...message, 
-      id: randomUUID(), 
-      projectId, 
-      createdAt: new Date().toISOString() 
-    };
-    const messages = this.projectMessages.get(projectId) || [];
-    messages.push(messageWithId);
-    this.projectMessages.set(projectId, messages);
-    return messageWithId;
-  }
 }
 
 export const storage = new MemStorage();
