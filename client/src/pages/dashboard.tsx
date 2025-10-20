@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TitanLogo } from "@/components/titan-logo";
+import TitanLogo from "@/components/titan-logo";
 import { ProjectModal } from "@/components/project-modal";
 import { ProjectCard } from "@/components/project-card";
 import { ExpandedProject } from "@/components/expanded-project";

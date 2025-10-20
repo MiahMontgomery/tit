@@ -1,4 +1,4 @@
-export function TitanLogo({ className = "w-6 h-6" }: { className?: string }) {
+export default function TitanLogo({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg 
       className={className} 
