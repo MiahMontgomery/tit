@@ -1,0 +1,12 @@
+export { scaffold } from './scaffold.js';
+export { build } from './build.js';
+export { deploy } from './deploy.js';
+export { verify } from './verify.js';
+export { publish } from './publish.js';
+export { opsDiff } from './ops.diff.js';
+export { opsPatch } from './ops.patch.js';
+export { opsTest } from './ops.test.ts';
+export { opsPr } from './ops.pr.js';
+export { opsDeployCanary } from './ops.deploy-canary.js';
+export { opsPromote } from './ops.promote.js';
+export { opsRollback } from './ops.rollback.js';

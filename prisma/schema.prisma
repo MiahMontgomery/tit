@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  type        String
+  templateRef String
+  spec        Json
+  state       String   @default("init") // init|scaffolded|built|deployed|error
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  runs        Run[]
+  jobs        Job[]
+  artifacts   Artifact[]
+
+  @@map("projects")
+}
+
+model Job {
+  id        String   @id @default(cuid())
+  projectId String
+  kind      String   // scaffold|build|deploy|verify|publish|ops.*
+  payload   Json
+  status    String   @default("queued") // queued|running|done|error
+  attempts  Int      @default(0)
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([status, createdAt])
+  @@map("jobs")
+}
+
+model Run {
+  id        String   @id @default(cuid())
+  projectId String
+  pipeline  String   @default("default")
+  status    String   @default("running") // running|done|error
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  details   Json?
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId, startedAt])
+  @@map("runs")
+}
+
+model Artifact {
+  id        String   @id @default(cuid())
+  projectId String
+  kind      String   // bundle|manifest|log|image|etc
+  path      String
+  meta      Json
+  createdAt DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId, kind])
+  @@map("artifacts")
+}
