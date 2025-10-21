@@ -21,10 +21,5 @@ RUN mkdir -p /data/storage
 RUN npm run build
 
 EXPOSE 3000
-ENV NODE_ENV=production
-ENV FILE_STORAGE_DIR=/data/storage
-
-# Healthcheck hits API route (not static)
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3   CMD curl -sf http://localhost:3000/api/health || exit 1
-
-CMD ["npm","start"]
+ENV PORT=3000
+CMD ["npm", "start"]
