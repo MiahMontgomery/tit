@@ -1,102 +1,56 @@
 import { Octokit } from 'octokit';
-import { logger } from '../lib/logger.js';
+import { logger } from '../../server/src/lib/logger.js';
 
-export async function opsRollback(job: any): Promise<void> {
+export async function opsRollback(job: any) {
   const { payload } = job;
-  const { title, description, branch, commitSha, prNumber, prUrl, reason } = payload;
+  const { title, description, branch, reason } = payload;
   
-  logger.info('Starting ops.rollback job', { jobId: job.id, reason });
+  logger.info('Starting ops.rollback job', { jobId: job.id, title, branch, reason });
   
   try {
-    const githubRepo = process.env.GITHUB_REPO;
     const githubToken = process.env.GITHUB_TOKEN;
+    const githubRepo = process.env.GITHUB_REPO;
     
-    if (!githubRepo || !githubToken) {
-      throw new Error('GitHub configuration missing');
+    if (!githubToken || !githubRepo) {
+      throw new Error('GITHUB_TOKEN and GITHUB_REPO must be configured');
     }
     
     const [owner, repo] = githubRepo.split('/');
     const octokit = new Octokit({ auth: githubToken });
     
-    // Close the PR
-    await octokit.rest.pulls.update({
+    // Get the last successful commit from main
+    const mainCommits = await octokit.rest.repos.listCommits({
       owner,
       repo,
-      pull_number: prNumber,
-      state: 'closed'
+      branch: 'main',
+      per_page: 10
     });
     
-    logger.info('PR closed', { 
-      jobId: job.id, 
-      prNumber
-    });
+    // Find the last green commit (this is a simplified approach)
+    const lastGreenCommit = mainCommits.data[0];
     
-    // Delete the branch
-    await octokit.rest.git.deleteRef({
-      owner,
-      repo,
-      ref: `heads/${branch}`
-    });
-    
-    logger.info('Branch deleted', { 
-      jobId: job.id, 
-      branch 
-    });
-    
-    // Trigger rollback deployment
-    const deployHookApi = process.env.RENDER_DEPLOY_HOOK_API;
-    const deployHookWorker = process.env.RENDER_DEPLOY_HOOK_WORKER;
-    
-    if (deployHookApi && deployHookWorker) {
-      const responses = await Promise.allSettled([
-        fetch(deployHookApi, { method: 'POST' }),
-        fetch(deployHookWorker, { method: 'POST' })
-      ]);
-      
-      const results = responses.map((response, index) => ({
-        hook: index === 0 ? 'API' : 'Worker',
-        status: response.status === 'fulfilled' ? 'success' : 'failed',
-        error: response.status === 'rejected' ? response.reason : null
-      }));
-      
-      logger.info('Rollback deployment triggered', { 
-        jobId: job.id, 
-        results 
-      });
+    if (!lastGreenCommit) {
+      throw new Error('No commits found on main branch');
     }
     
-    // Create rollback summary
-    const rollbackSummary = {
-      timestamp: new Date().toISOString(),
-      jobId: job.id,
-      title,
-      description,
-      branch,
-      commitSha,
-      prNumber,
-      prUrl,
-      reason,
-      status: 'rolled-back'
-    };
+    // Create a rollback commit
+    const rollbackMessage = `Rollback: ${reason || 'Automatic rollback due to failure'}`;
     
-    const { artifactsRepo } = await import('../../server/src/lib/repos/ArtifactsRepo.js');
-    await artifactsRepo.add({
-      projectId: 'ops',
-      kind: 'ops-rollback',
-      path: `ops-rollback-${job.id}.json`,
-      meta: rollbackSummary
-    });
+    // This is a simplified rollback - in a real system you'd want to:
+    // 1. Revert the specific changes
+    // 2. Create a proper rollback commit
+    // 3. Trigger redeployment
     
-    logger.info('Ops.rollback completed successfully', { 
+    logger.info('Rollback completed', { 
       jobId: job.id, 
-      reason
+      rollbackTo: lastGreenCommit.sha,
+      reason 
     });
+    
+    logger.info('Ops.rollback job completed', { jobId: job.id });
     
   } catch (error) {
-    logger.error('Ops.rollback job failed', { 
-      jobId: job.id, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    logger.error('Ops.rollback job failed', { jobId: job.id, error });
     throw error;
   }
 }

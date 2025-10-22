@@ -1,85 +1,55 @@
 import { Octokit } from 'octokit';
-import { logger } from '../lib/logger.js';
+import { logger } from '../../server/src/lib/logger.js';
 
-export async function opsPromote(job: any): Promise<void> {
+export async function opsPromote(job: any) {
   const { payload } = job;
-  const { title, description, branch, commitSha, prNumber, prUrl, testResults, canaryResults, healthResults } = payload;
+  const { title, description, branch, prNumber, prUrl } = payload;
   
-  logger.info('Starting ops.promote job', { jobId: job.id, prNumber });
+  logger.info('Starting ops.promote job', { jobId: job.id, title, branch, prNumber });
   
   try {
-    const githubRepo = process.env.GITHUB_REPO;
     const githubToken = process.env.GITHUB_TOKEN;
+    const githubRepo = process.env.GITHUB_REPO;
     
-    if (!githubRepo || !githubToken) {
-      throw new Error('GitHub configuration missing');
+    if (!githubToken || !githubRepo) {
+      throw new Error('GITHUB_TOKEN and GITHUB_REPO must be configured');
     }
     
     const [owner, repo] = githubRepo.split('/');
     const octokit = new Octokit({ auth: githubToken });
     
-    // Merge the PR
+    // Merge the pull request
     const mergeResult = await octokit.rest.pulls.merge({
       owner,
       repo,
       pull_number: prNumber,
-      merge_method: 'squash'
+      merge_method: 'merge'
     });
     
-    logger.info('PR merged successfully', { 
+    logger.info('Pull request merged successfully', { 
       jobId: job.id, 
-      prNumber,
-      mergeSha: mergeResult.data.sha
-    });
-    
-    // Delete the branch
-    await octokit.rest.git.deleteRef({
-      owner,
-      repo,
-      ref: `heads/${branch}`
-    });
-    
-    logger.info('Branch deleted', { 
-      jobId: job.id, 
-      branch 
-    });
-    
-    // Create a summary artifact
-    const summary = {
-      timestamp: new Date().toISOString(),
-      jobId: job.id,
-      title,
-      description,
-      branch,
-      commitSha,
-      prNumber,
+      prNumber, 
       prUrl,
-      mergeSha: mergeResult.data.sha,
-      testResults,
-      canaryResults,
-      healthResults,
-      status: 'promoted'
-    };
-    
-    const { artifactsRepo } = await import('../../server/src/lib/repos/ArtifactsRepo.js');
-    await artifactsRepo.add({
-      projectId: 'ops',
-      kind: 'ops-summary',
-      path: `ops-summary-${job.id}.json`,
-      meta: summary
-    });
-    
-    logger.info('Ops.promote completed successfully', { 
-      jobId: job.id, 
-      prNumber,
       mergeSha: mergeResult.data.sha
     });
+    
+    // Clean up branch
+    try {
+      await octokit.rest.git.deleteRef({
+        owner,
+        repo,
+        ref: `heads/${branch}`
+      });
+      
+      logger.info('Branch cleaned up', { jobId: job.id, branch });
+    } catch (error) {
+      logger.warn('Failed to delete branch', { jobId: job.id, branch, error });
+    }
+    
+    logger.info('Ops.promote job completed successfully', { jobId: job.id });
     
   } catch (error) {
-    logger.error('Ops.promote job failed', { 
-      jobId: job.id, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    logger.error('Ops.promote job failed', { jobId: job.id, error });
     throw error;
   }
 }

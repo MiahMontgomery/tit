@@ -1,6 +1,17 @@
-import { claimNext, markDone, markError, markErrorOrRetry } from '../../server/src/lib/queue.js';
+import { claimNext, markDone, markErrorOrRetry } from '../../server/src/lib/queue.js';
 import { logger } from '../../server/src/lib/logger.js';
-import * as handlers from './handlers/index.js';
+import { scaffold } from './handlers/scaffold.js';
+import { build } from './handlers/build.js';
+import { deploy } from './handlers/deploy.js';
+import { verify } from './handlers/verify.js';
+import { publish } from './handlers/publish.js';
+import { opsDiff } from './handlers/ops.diff.js';
+import { opsPatch } from './handlers/ops.patch.js';
+import { opsTest } from './handlers/ops.test.js';
+import { opsPr } from './handlers/ops.pr.js';
+import { opsDeployCanary } from './handlers/ops.deploy-canary.js';
+import { opsPromote } from './handlers/ops.promote.js';
+import { opsRollback } from './handlers/ops.rollback.js';
 
 const POLL_INTERVAL = 500; // 500ms
 let isRunning = false;
@@ -22,40 +33,40 @@ async function processJob(job: any): Promise<void> {
     // Route to appropriate handler
     switch (job.kind) {
       case 'scaffold':
-        await handlers.scaffold(job);
+        await scaffold(job);
         break;
       case 'build':
-        await handlers.build(job);
+        await build(job);
         break;
       case 'deploy':
-        await handlers.deploy(job);
+        await deploy(job);
         break;
       case 'verify':
-        await handlers.verify(job);
+        await verify(job);
         break;
       case 'publish':
-        await handlers.publish(job);
+        await publish(job);
         break;
       case 'ops.diff':
-        await handlers.opsDiff(job);
+        await opsDiff(job);
         break;
       case 'ops.patch':
-        await handlers.opsPatch(job);
+        await opsPatch(job);
         break;
       case 'ops.test':
-        await handlers.opsTest(job);
+        await opsTest(job);
         break;
       case 'ops.pr':
-        await handlers.opsPr(job);
+        await opsPr(job);
         break;
       case 'ops.deploy-canary':
-        await handlers.opsDeployCanary(job);
+        await opsDeployCanary(job);
         break;
       case 'ops.promote':
-        await handlers.opsPromote(job);
+        await opsPromote(job);
         break;
       case 'ops.rollback':
-        await handlers.opsRollback(job);
+        await opsRollback(job);
         break;
       default:
         throw new Error(`Unknown job kind: ${job.kind}`);

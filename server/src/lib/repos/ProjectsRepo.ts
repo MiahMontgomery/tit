@@ -1,61 +1,61 @@
-import { PrismaClient, Project } from '@prisma/client';
-import { getDb } from '../db.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export interface CreateProjectData {
   name: string;
   type: string;
-  templateRef?: string;
-  spec?: Record<string, any>;
+  templateRef: string;
+  spec: any;
+}
+
+export interface UpdateProjectStateData {
+  state: string;
 }
 
 export class ProjectsRepo {
-  private async getDb(): Promise<PrismaClient> {
-    return await getDb();
-  }
-
-  async create(data: CreateProjectData): Promise<Project> {
-    const db = await this.getDb();
-    return await db.project.create({
+  static async create(data: CreateProjectData) {
+    return await prisma.project.create({
       data: {
         name: data.name,
         type: data.type,
-        templateRef: data.templateRef || 'persona/basic',
-        spec: data.spec || {},
+        templateRef: data.templateRef,
+        spec: data.spec,
         state: 'init'
       }
     });
   }
 
-  async getById(id: string): Promise<Project | null> {
-    const db = await this.getDb();
-    return await db.project.findUnique({
-      where: { id }
-    });
-  }
-
-  async getAll(cursor?: string, limit: number = 20): Promise<Project[]> {
-    const db = await this.getDb();
-    return await db.project.findMany({
-      where: cursor ? { id: { gt: cursor } } : undefined,
-      take: limit,
-      orderBy: { createdAt: 'desc' }
-    });
-  }
-
-  async updateState(id: string, state: string): Promise<Project> {
-    const db = await this.getDb();
-    return await db.project.update({
+  static async updateState(id: string, state: string) {
+    return await prisma.project.update({
       where: { id },
-      data: { state, updatedAt: new Date() }
+      data: { state }
     });
   }
 
-  async delete(id: string): Promise<void> {
-    const db = await this.getDb();
-    await db.project.delete({
-      where: { id }
+  static async get(id: string) {
+    return await prisma.project.findUnique({
+      where: { id },
+      include: {
+        runs: true,
+        jobs: true,
+        artifacts: true
+      }
+    });
+  }
+
+  static async getAll(cursor?: string, limit: number = 20) {
+    const where = cursor ? { id: { gt: cursor } } : {};
+    
+    return await prisma.project.findMany({
+      where,
+      take: limit,
+      orderBy: { createdAt: 'asc' },
+      include: {
+        runs: true,
+        jobs: true,
+        artifacts: true
+      }
     });
   }
 }
-
-export const projectsRepo = new ProjectsRepo();

@@ -18,6 +18,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "prisma:gen": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
     "migrate": "tsx server/migrate.ts",
     "worker": "tsx server/worker.ts",
@@ -26,6 +28,7 @@
     "e2e": "tsx scripts/e2e-test.ts",
     "prod-test": "node scripts/prod-test.js",
     "seed": "tsx scripts/dev-seed.ts",
+    "test": "vitest",
     "electron": "NODE_ENV=development electron electron/main.js",
     "electron:dev": "NODE_ENV=development electron electron/main.js",
     "electron:build": "npm run build && electron-builder",
@@ -140,7 +143,10 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "vitest": "^1.0.0",
+    "supertest": "^6.3.3",
+    "@types/supertest": "^2.0.16"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

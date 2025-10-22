@@ -1,19 +1,20 @@
-import { PrismaClient, Run } from '@prisma/client';
-import { getDb } from '../db.js';
+import { PrismaClient } from '@prisma/client';
 
-export interface CreateRunData {
+const prisma = new PrismaClient();
+
+export interface StartRunData {
   projectId: string;
   pipeline?: string;
 }
 
-export class RunsRepo {
-  private async getDb(): Promise<PrismaClient> {
-    return await getDb();
-  }
+export interface FinishRunData {
+  status: string;
+  details?: any;
+}
 
-  async start(data: CreateRunData): Promise<Run> {
-    const db = await this.getDb();
-    return await db.run.create({
+export class RunsRepo {
+  static async start(data: StartRunData) {
+    return await prisma.run.create({
       data: {
         projectId: data.projectId,
         pipeline: data.pipeline || 'default',
@@ -22,33 +23,28 @@ export class RunsRepo {
     });
   }
 
-  async finish(runId: string, status: string, details?: Record<string, any>): Promise<Run> {
-    const db = await this.getDb();
-    return await db.run.update({
+  static async finish(runId: string, data: FinishRunData) {
+    return await prisma.run.update({
       where: { id: runId },
       data: {
-        status,
-        endedAt: new Date(),
-        details
+        status: data.status,
+        details: data.details,
+        endedAt: new Date()
       }
     });
   }
 
-  async getByProject(projectId: string): Promise<Run[]> {
-    const db = await this.getDb();
-    return await db.run.findMany({
+  static async getLatestByProject(projectId: string) {
+    return await prisma.run.findFirst({
       where: { projectId },
       orderBy: { startedAt: 'desc' }
     });
   }
 
-  async getLatestByProject(projectId: string): Promise<Run | null> {
-    const db = await this.getDb();
-    return await db.run.findFirst({
+  static async getByProject(projectId: string) {
+    return await prisma.run.findMany({
       where: { projectId },
       orderBy: { startedAt: 'desc' }
     });
   }
 }
-
-export const runsRepo = new RunsRepo();

@@ -1,112 +1,91 @@
-import { logger } from '../lib/logger.js';
+import { enqueue } from '../../server/src/lib/queue.js';
+import { logger } from '../../server/src/lib/logger.js';
 
-export async function opsDeployCanary(job: any): Promise<void> {
+export async function opsDeployCanary(job: any) {
   const { payload } = job;
-  const { title, description, branch, commitSha, prNumber, prUrl, testResults } = payload;
+  const { title, description, branch, prNumber, prUrl } = payload;
   
-  logger.info('Starting ops.deploy-canary job', { jobId: job.id, branch, prNumber });
+  logger.info('Starting ops.deploy-canary job', { jobId: job.id, title, branch, prNumber });
   
   try {
-    const deployHookApi = process.env.RENDER_DEPLOY_HOOK_API;
-    const deployHookWorker = process.env.RENDER_DEPLOY_HOOK_WORKER;
+    const renderApiHook = process.env.RENDER_DEPLOY_HOOK_API;
+    const renderWorkerHook = process.env.RENDER_DEPLOY_HOOK_WORKER;
     
-    if (!deployHookApi || !deployHookWorker) {
-      logger.warn('Deploy hooks not configured, skipping canary deploy', { jobId: job.id });
+    if (!renderApiHook || !renderWorkerHook) {
+      throw new Error('RENDER_DEPLOY_HOOK_API and RENDER_DEPLOY_HOOK_WORKER must be configured');
+    }
+    
+    // Trigger Render deployments
+    const deployPromises = [];
+    
+    if (renderApiHook) {
+      deployPromises.push(
+        fetch(renderApiHook, { method: 'POST' })
+          .then(res => res.json())
+          .then(data => ({ service: 'api', data }))
+      );
+    }
+    
+    if (renderWorkerHook) {
+      deployPromises.push(
+        fetch(renderWorkerHook, { method: 'POST' })
+          .then(res => res.json())
+          .then(data => ({ service: 'worker', data }))
+      );
+    }
+    
+    const deployResults = await Promise.all(deployPromises);
+    
+    logger.info('Canary deployments triggered', { 
+      jobId: job.id, 
+      results: deployResults 
+    });
+    
+    // Poll health endpoints to verify deployment
+    const healthCheckPromises = [
+      fetch(`${process.env.API_URL || 'http://localhost:3000'}/api/health`)
+        .then(res => res.json())
+        .then(data => ({ service: 'api', health: data }))
+    ];
+    
+    const healthResults = await Promise.all(healthCheckPromises);
+    
+    // Check if deployments are healthy
+    const allHealthy = healthResults.every(result => result.health?.ok === true);
+    
+    if (allHealthy) {
+      logger.info('Canary deployment health check passed', { jobId: job.id });
       
-      // Skip to promote if no deploy hooks
-      const { enqueue } = await import('../lib/queue.js');
+      // Enqueue promotion
       await enqueue({
         projectId: 'ops',
         kind: 'ops.promote',
-        payload: {
-          title,
-          description,
-          branch,
-          commitSha,
-          prNumber,
-          prUrl,
-          testResults,
-          canarySkipped: true
-        }
+        payload: { title, description, branch, prNumber, prUrl }
       });
-      return;
+    } else {
+      logger.error('Canary deployment health check failed', { 
+        jobId: job.id, 
+        healthResults 
+      });
+      
+      // Enqueue rollback
+      await enqueue({
+        projectId: 'ops',
+        kind: 'ops.rollback',
+        payload: { title, description, branch, reason: 'Health check failed' }
+      });
     }
     
-    // Trigger canary deployments
-    const responses = await Promise.allSettled([
-      fetch(deployHookApi, { method: 'POST' }),
-      fetch(deployHookWorker, { method: 'POST' })
-    ]);
-    
-    const results = responses.map((response, index) => ({
-      hook: index === 0 ? 'API' : 'Worker',
-      status: response.status === 'fulfilled' ? 'success' : 'failed',
-      error: response.status === 'rejected' ? response.reason : null
-    }));
-    
-    logger.info('Canary deployment triggered', { 
-      jobId: job.id, 
-      results 
-    });
-    
-    // Wait a bit for deployment to start
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    
-    // Check health endpoints (simplified)
-    const healthChecks = await Promise.allSettled([
-      fetch(`${process.env.API_URL || 'http://localhost:3000'}/api/health`),
-      fetch(`${process.env.WORKER_URL || 'http://localhost:3001'}/health`)
-    ]);
-    
-    const healthResults = healthChecks.map((response, index) => ({
-      service: index === 0 ? 'API' : 'Worker',
-      status: response.status === 'fulfilled' ? 'healthy' : 'unhealthy',
-      error: response.status === 'rejected' ? response.reason : null
-    }));
-    
-    logger.info('Health checks completed', { 
-      jobId: job.id, 
-      healthResults 
-    });
-    
-    // Enqueue next step: ops.promote
-    const { enqueue } = await import('../lib/queue.js');
-    await enqueue({
-      projectId: 'ops',
-      kind: 'ops.promote',
-      payload: {
-        title,
-        description,
-        branch,
-        commitSha,
-        prNumber,
-        prUrl,
-        testResults,
-        canaryResults: results,
-        healthResults
-      }
-    });
+    logger.info('Ops.deploy-canary job completed', { jobId: job.id });
     
   } catch (error) {
-    logger.error('Ops.deploy-canary job failed', { 
-      jobId: job.id, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    logger.error('Ops.deploy-canary job failed', { jobId: job.id, error });
     
-    // Enqueue rollback on failure
-    const { enqueue } = await import('../lib/queue.js');
+    // Enqueue rollback on deployment failure
     await enqueue({
       projectId: 'ops',
       kind: 'ops.rollback',
-      payload: {
-        title,
-        description,
-        branch,
-        commitSha,
-        prNumber,
-        prUrl,
-        reason: 'Canary deployment failed'
-      }
+      payload: { title, description, branch, reason: 'Deployment failed' }
     });
     
     throw error;

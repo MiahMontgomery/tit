@@ -1,68 +1,62 @@
 import { Octokit } from 'octokit';
-import { logger } from '../lib/logger.js';
+import { enqueue } from '../../server/src/lib/queue.js';
+import { logger } from '../../server/src/lib/logger.js';
 
-export async function opsPr(job: any): Promise<void> {
+export async function opsPr(job: any) {
   const { payload } = job;
-  const { title, description, branch, commitSha, testResults } = payload;
+  const { title, description, branch } = payload;
   
-  logger.info('Starting ops.pr job', { jobId: job.id, branch });
+  logger.info('Starting ops.pr job', { jobId: job.id, title, branch });
   
   try {
-    const githubRepo = process.env.GITHUB_REPO;
     const githubToken = process.env.GITHUB_TOKEN;
+    const githubRepo = process.env.GITHUB_REPO;
     
-    if (!githubRepo || !githubToken) {
-      throw new Error('GitHub configuration missing');
+    if (!githubToken || !githubRepo) {
+      throw new Error('GITHUB_TOKEN and GITHUB_REPO must be configured');
     }
     
     const [owner, repo] = githubRepo.split('/');
     const octokit = new Octokit({ auth: githubToken });
     
-    // Create PR
+    // Create pull request
     const pr = await octokit.rest.pulls.create({
       owner,
       repo,
       title,
       head: branch,
       base: 'main',
-      body: description || `Automated PR created by Titan Ops\n\nCommit: ${commitSha}\nTest Status: ${testResults?.status || 'unknown'}`
+      body: description || `Automated PR created by Titan ops system.\n\nBranch: ${branch}`
     });
     
-    // Add titan-ops label
-    await octokit.rest.issues.addLabels({
-      owner,
-      repo,
-      issue_number: pr.data.number,
-      labels: ['titan-ops']
-    });
+    const prNumber = pr.data.number;
+    const prUrl = pr.data.html_url;
     
-    logger.info('Ops.pr completed, created PR', { 
+    logger.info('Pull request created successfully', { 
       jobId: job.id, 
-      prNumber: pr.data.number,
-      prUrl: pr.data.html_url
+      prNumber, 
+      prUrl,
+      branch 
     });
     
-    // Enqueue next step: ops.deploy-canary
-    const { enqueue } = await import('../lib/queue.js');
+    // Enqueue next step
     await enqueue({
       projectId: 'ops',
       kind: 'ops.deploy-canary',
-      payload: {
-        title,
-        description,
-        branch,
-        commitSha,
-        prNumber: pr.data.number,
-        prUrl: pr.data.html_url,
-        testResults
+      payload: { 
+        title, 
+        description, 
+        branch, 
+        prNumber,
+        prUrl,
+        patches: payload.patches 
       }
     });
     
+    logger.info('Ops.pr job completed', { jobId: job.id });
+    
   } catch (error) {
-    logger.error('Ops.pr job failed', { 
-      jobId: job.id, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    logger.error('Ops.pr job failed', { jobId: job.id, error });
     throw error;
   }
 }

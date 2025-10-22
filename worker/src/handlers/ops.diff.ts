@@ -1,6 +1,7 @@
-import { logger } from '../lib/logger.js';
+import { enqueue } from '../../server/src/lib/queue.js';
+import { logger } from '../../server/src/lib/logger.js';
 
-export async function opsDiff(job: any): Promise<void> {
+export async function opsDiff(job: any) {
   const { payload } = job;
   const { title, description, branch, patches } = payload;
   
@@ -8,59 +9,46 @@ export async function opsDiff(job: any): Promise<void> {
   
   try {
     // Validate allowed paths
-    const allowedPaths = process.env.ALLOWED_PATHS?.split(',') || [];
-    const protectedPaths = process.env.PROTECTED_PATHS?.split(',') || [];
+    const allowedPaths = (process.env.ALLOWED_PATHS || 'client/**,server/**,worker/**,Dockerfile,package.json,tsconfig.json,vite.config.ts').split(',');
+    const protectedPaths = (process.env.PROTECTED_PATHS || 'infra/**,secrets/**,database/migrations/**').split(',');
     
     for (const patch of patches) {
       const path = patch.path;
       
-      // Check if path is allowed
-      const isAllowed = allowedPaths.some(allowed => {
-        const pattern = allowed.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
-        return new RegExp(`^${pattern}$`).test(path);
-      });
-      
-      if (!isAllowed) {
-        throw new Error(`Path not allowed: ${path}`);
+      // Check if path is in protected paths
+      for (const protectedPath of protectedPaths) {
+        if (path.includes(protectedPath.replace('**', ''))) {
+          throw new Error(`Path ${path} is protected and cannot be modified`);
+        }
       }
       
-      // Check if path is protected
-      const isProtected = protectedPaths.some(protectedPath => {
-        if (!protectedPath) return false;
-        const pattern = protectedPath.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
-        return new RegExp(`^${pattern}$`).test(path);
-      });
+      // Check if path is in allowed paths
+      let isAllowed = false;
+      for (const allowedPath of allowedPaths) {
+        if (path.includes(allowedPath.replace('**', ''))) {
+          isAllowed = true;
+          break;
+        }
+      }
       
-      if (isProtected) {
-        throw new Error(`Path is protected: ${path}`);
+      if (!isAllowed) {
+        throw new Error(`Path ${path} is not in allowed paths`);
       }
     }
     
-    logger.info('Ops.diff validation passed', { 
-      jobId: job.id, 
-      patchCount: patches.length 
-    });
+    logger.info('Ops diff validation passed', { jobId: job.id, patchCount: patches.length });
     
-    // Enqueue next step: ops.patch
-    const { enqueue } = await import('../lib/queue.js');
+    // Enqueue next step
     await enqueue({
       projectId: 'ops',
       kind: 'ops.patch',
-      payload: {
-        title,
-        description,
-        branch,
-        patches
-      }
+      payload: { title, description, branch, patches }
     });
     
-    logger.info('Ops.diff job completed, enqueued ops.patch', { jobId: job.id });
+    logger.info('Ops.diff job completed', { jobId: job.id });
     
   } catch (error) {
-    logger.error('Ops.diff job failed', { 
-      jobId: job.id, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    logger.error('Ops.diff job failed', { jobId: job.id, error });
     throw error;
   }
 }

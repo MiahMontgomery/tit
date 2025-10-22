@@ -1,21 +1,17 @@
-import { PrismaClient, Artifact } from '@prisma/client';
-import { getDb } from '../db.js';
+import { PrismaClient } from '@prisma/client';
 
-export interface CreateArtifactData {
+const prisma = new PrismaClient();
+
+export interface AddArtifactData {
   projectId: string;
   kind: string;
   path: string;
-  meta?: Record<string, any>;
+  meta?: any;
 }
 
 export class ArtifactsRepo {
-  private async getDb(): Promise<PrismaClient> {
-    return await getDb();
-  }
-
-  async add(data: CreateArtifactData): Promise<Artifact> {
-    const db = await this.getDb();
-    return await db.artifact.create({
+  static async add(data: AddArtifactData) {
+    return await prisma.artifact.create({
       data: {
         projectId: data.projectId,
         kind: data.kind,
@@ -25,31 +21,20 @@ export class ArtifactsRepo {
     });
   }
 
-  async getByProject(projectId: string): Promise<Artifact[]> {
-    const db = await this.getDb();
-    return await db.artifact.findMany({
+  static async getByProject(projectId: string) {
+    return await prisma.artifact.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' }
     });
   }
 
-  async getByProjectAndKind(projectId: string, kind: string): Promise<Artifact[]> {
-    const db = await this.getDb();
-    return await db.artifact.findMany({
+  static async getByProjectAndKind(projectId: string, kind: string) {
+    return await prisma.artifact.findMany({
       where: { 
         projectId,
-        kind
+        kind 
       },
       orderBy: { createdAt: 'desc' }
     });
   }
-
-  async delete(id: string): Promise<void> {
-    const db = await this.getDb();
-    await db.artifact.delete({
-      where: { id }
-    });
-  }
 }
-
-export const artifactsRepo = new ArtifactsRepo();

@@ -1,37 +1,38 @@
-import { Template, Ctx } from '../../types.js';
-import { promises as fs } from 'fs';
-import { join } from 'path';
+import { Template, Ctx } from '../types.js';
+import fs from 'fs/promises';
+import path from 'path';
 
-export const personaBasicTemplate: Template = {
-  async scaffold(project: Project, spec: any, ctx: Ctx): Promise<void> {
-    const { artifactsDir, addArtifact, logger } = ctx;
+export const personaBasic: Template = {
+  async scaffold(project, spec, ctx) {
+    ctx.logger('Starting scaffold for persona/basic template', { projectId: project.id });
     
-    logger('Starting persona/basic scaffold', { projectId: project.id });
+    // Create project directory
+    const projectDir = path.join(ctx.artifactsDir, project.id);
+    await fs.mkdir(projectDir, { recursive: true });
     
-    // Create README.md
+    // Write README.md
     const readmeContent = `# ${project.name}
 
-This is a basic persona project created by Titan.
+This is a basic project created by Titan.
 
 ## Project Details
 - **Type**: ${project.type}
 - **Template**: ${project.templateRef}
 - **Created**: ${new Date().toISOString()}
 
-## Spec
+## Specification
 \`\`\`json
 ${JSON.stringify(spec, null, 2)}
 \`\`\`
 
 ## Next Steps
-This persona is ready for configuration and deployment.
+This project has been scaffolded and is ready for the next phase of development.
 `;
 
-    const readmePath = join(artifactsDir, 'README.md');
-    await fs.writeFile(readmePath, readmeContent);
-    await addArtifact('manifest', 'README.md', { type: 'documentation' });
+    await fs.writeFile(path.join(projectDir, 'README.md'), readmeContent);
+    await ctx.addArtifact('readme', 'README.md', { size: readmeContent.length });
     
-    // Create manifest.json
+    // Write manifest.json
     const manifest = {
       name: project.name,
       type: project.type,
@@ -41,85 +42,85 @@ This persona is ready for configuration and deployment.
       spec
     };
     
-    const manifestPath = join(artifactsDir, 'manifest.json');
-    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-    await addArtifact('manifest', 'manifest.json', { type: 'configuration' });
+    await fs.writeFile(path.join(projectDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+    await ctx.addArtifact('manifest', 'manifest.json', { size: JSON.stringify(manifest).length });
     
-    // Create basic persona config
-    const personaConfig = {
-      name: project.name,
-      role: spec.role || 'Assistant',
-      description: spec.description || 'A helpful AI persona',
-      traits: spec.traits || ['helpful', 'friendly'],
-      communicationStyle: spec.communicationStyle || 'professional',
-      expertise: spec.expertise || ['general assistance'],
-      targetAudience: spec.targetAudience || 'general users'
+    ctx.logger('Scaffold completed', { projectId: project.id });
+  },
+
+  async build(project, spec, ctx) {
+    ctx.logger('Starting build for persona/basic template', { projectId: project.id });
+    
+    // For basic template, just create a simple build artifact
+    const projectDir = path.join(ctx.artifactsDir, project.id);
+    const buildInfo = {
+      buildTime: new Date().toISOString(),
+      projectId: project.id,
+      version: '1.0.0'
     };
     
-    const configPath = join(artifactsDir, 'persona.json');
-    await fs.writeFile(configPath, JSON.stringify(personaConfig, null, 2));
-    await addArtifact('config', 'persona.json', { type: 'persona-config' });
+    await fs.writeFile(path.join(projectDir, 'build.json'), JSON.stringify(buildInfo, null, 2));
+    await ctx.addArtifact('build', 'build.json', { size: JSON.stringify(buildInfo).length });
     
-    logger('Persona/basic scaffold completed', { projectId: project.id });
+    ctx.logger('Build completed', { projectId: project.id });
   },
 
-  async build(project: Project, spec: any, ctx: Ctx): Promise<void> {
-    const { logger } = ctx;
+  async deploy(project, spec, ctx) {
+    ctx.logger('Starting deploy for persona/basic template', { projectId: project.id });
     
-    logger('Persona/basic build (no-op)', { projectId: project.id });
-    // No build step needed for basic persona
+    // For basic template, just record deployment info
+    const projectDir = path.join(ctx.artifactsDir, project.id);
+    const deployInfo = {
+      deployedAt: new Date().toISOString(),
+      projectId: project.id,
+      status: 'deployed'
+    };
+    
+    await fs.writeFile(path.join(projectDir, 'deploy.json'), JSON.stringify(deployInfo, null, 2));
+    await ctx.addArtifact('deploy', 'deploy.json', { size: JSON.stringify(deployInfo).length });
+    
+    ctx.logger('Deploy completed', { projectId: project.id });
   },
 
-  async deploy(project: Project, spec: any, ctx: Ctx): Promise<void> {
-    const { logger } = ctx;
-    
-    logger('Persona/basic deploy (no-op)', { projectId: project.id });
-    // No deployment needed for basic persona
-  },
-
-  async verify(project: Project, spec: any, ctx: Ctx): Promise<void> {
-    const { artifactsDir, addArtifact, logger } = ctx;
-    
-    logger('Verifying persona/basic project', { projectId: project.id });
+  async verify(project, spec, ctx) {
+    ctx.logger('Starting verify for persona/basic template', { projectId: project.id });
     
     // Check that required files exist
-    const requiredFiles = ['README.md', 'manifest.json', 'persona.json'];
-    const verificationResults: Record<string, boolean> = {};
+    const projectDir = path.join(ctx.artifactsDir, project.id);
+    const requiredFiles = ['README.md', 'manifest.json', 'build.json', 'deploy.json'];
     
     for (const file of requiredFiles) {
       try {
-        await fs.access(join(artifactsDir, file));
-        verificationResults[file] = true;
-      } catch {
-        verificationResults[file] = false;
+        await fs.access(path.join(projectDir, file));
+        ctx.logger(`Verified file exists: ${file}`, { projectId: project.id });
+      } catch (error) {
+        throw new Error(`Required file missing: ${file}`);
       }
     }
     
-    const allFilesExist = Object.values(verificationResults).every(exists => exists);
-    
-    const verifyResult = {
-      timestamp: new Date().toISOString(),
-      projectId: project.id,
-      template: 'persona/basic',
-      files: verificationResults,
-      status: allFilesExist ? 'passed' : 'failed',
-      message: allFilesExist ? 'All required files present' : 'Some required files missing'
-    };
-    
-    const verifyPath = join(artifactsDir, 'verify.json');
-    await fs.writeFile(verifyPath, JSON.stringify(verifyResult, null, 2));
-    await addArtifact('verification', 'verify.json', { type: 'verification-result' });
-    
-    logger('Persona/basic verification completed', { 
-      projectId: project.id, 
-      status: verifyResult.status 
+    await ctx.addArtifact('verification', 'verification.json', { 
+      verifiedAt: new Date().toISOString(),
+      files: requiredFiles
     });
+    
+    ctx.logger('Verify completed', { projectId: project.id });
   },
 
-  async publish(project: Project, spec: any, ctx: Ctx): Promise<void> {
-    const { logger } = ctx;
+  async publish(project, spec, ctx) {
+    ctx.logger('Starting publish for persona/basic template', { projectId: project.id });
     
-    logger('Persona/basic publish (no-op)', { projectId: project.id });
-    // No publishing needed for basic persona
+    // Create final publish artifact
+    const projectDir = path.join(ctx.artifactsDir, project.id);
+    const publishInfo = {
+      publishedAt: new Date().toISOString(),
+      projectId: project.id,
+      status: 'published',
+      version: '1.0.0'
+    };
+    
+    await fs.writeFile(path.join(projectDir, 'publish.json'), JSON.stringify(publishInfo, null, 2));
+    await ctx.addArtifact('publish', 'publish.json', { size: JSON.stringify(publishInfo).length });
+    
+    ctx.logger('Publish completed', { projectId: project.id });
   }
 };

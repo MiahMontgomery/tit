@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
-import { projectsRepo } from "../lib/repos/ProjectsRepo.js";
-import { runsRepo } from "../lib/repos/RunsRepo.js";
-import { jobsRepo } from "../lib/repos/JobsRepo.js";
-import { artifactsRepo } from "../lib/repos/ArtifactsRepo.js";
+import { ProjectsRepo } from "../lib/repos/ProjectsRepo.js";
+import { RunsRepo } from "../lib/repos/RunsRepo.js";
+import { JobsRepo } from "../lib/repos/JobsRepo.js";
+import { ArtifactsRepo } from "../lib/repos/ArtifactsRepo.js";
 import { enqueue } from "../lib/queue.js";
 import { logger } from "../lib/logger.js";
 
@@ -23,7 +23,7 @@ router.get("/", async (req, res) => {
     const cursor = req.query.cursor as string;
     const limit = parseInt(req.query.limit as string) || 20;
     
-    const projects = await projectsRepo.getAll(cursor, limit);
+    const projects = await ProjectsRepo.getAll(cursor, limit);
     
     res.json({
       success: true,
@@ -45,15 +45,15 @@ router.post("/", async (req, res) => {
     const data = createProjectSchema.parse(req.body);
     
     // Create project
-    const project = await projectsRepo.create({
+    const project = await ProjectsRepo.create({
       name: data.name,
       type: data.type,
-      templateRef: data.templateRef,
-      spec: data.spec
+      templateRef: data.templateRef || 'persona/basic',
+      spec: data.spec || {}
     });
     
     // Start a run
-    const run = await runsRepo.start({
+    const run = await RunsRepo.start({
       projectId: project.id,
       pipeline: 'default'
     });
@@ -92,7 +92,7 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     
-    const project = await projectsRepo.getById(id);
+    const project = await ProjectsRepo.get(id);
     if (!project) {
       return res.status(404).json({
         success: false,
@@ -100,9 +100,9 @@ router.get("/:id", async (req, res) => {
       });
     }
     
-    const latestRun = await runsRepo.getLatestByProject(id);
-    const jobs = await jobsRepo.getByProject(id);
-    const artifacts = await artifactsRepo.getByProject(id);
+    const latestRun = await RunsRepo.getLatestByProject(id);
+    const jobs = await JobsRepo.getByProject(id);
+    const artifacts = await ArtifactsRepo.getByProject(id);
     
     res.json({
       success: true,
