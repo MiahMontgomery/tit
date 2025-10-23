@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
-import { enqueue } from '../../server/src/lib/queue.js';
-import { logger } from '../../server/src/lib/logger.js';
+import { enqueue } from '../../../server/src/lib/queue.js';
+import { logger } from '../../../server/src/lib/logger.js';
 
 export async function opsTest(job: any) {
   const { payload } = job;

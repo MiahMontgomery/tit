@@ -1,8 +1,8 @@
 import { resolveTemplate } from '../templates/registry.js';
-import { ProjectsRepo } from '../../server/src/lib/repos/ProjectsRepo.js';
-import { ArtifactsRepo } from '../../server/src/lib/repos/ArtifactsRepo.js';
-import { RunsRepo } from '../../server/src/lib/repos/RunsRepo.js';
-import { logger } from '../../server/src/lib/logger.js';
+import { ProjectsRepo } from '../../../server/src/lib/repos/ProjectsRepo.js';
+import { ArtifactsRepo } from '../../../server/src/lib/repos/ArtifactsRepo.js';
+import { RunsRepo } from '../../../server/src/lib/repos/RunsRepo.js';
+import { logger } from '../../../server/src/lib/logger.js';
 import path from 'path';
 
 export async function publish(job: any) {

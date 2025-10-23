@@ -1,8 +1,8 @@
 import { resolveTemplate } from '../templates/registry.js';
-import { ProjectsRepo } from '../../server/src/lib/repos/ProjectsRepo.js';
-import { ArtifactsRepo } from '../../server/src/lib/repos/ArtifactsRepo.js';
-import { enqueue } from '../../server/src/lib/queue.js';
-import { logger } from '../../server/src/lib/logger.js';
+import { ProjectsRepo } from '../../../server/src/lib/repos/ProjectsRepo.js';
+import { ArtifactsRepo } from '../../../server/src/lib/repos/ArtifactsRepo.js';
+import { enqueue } from '../../../server/src/lib/queue.js';
+import { logger } from '../../../server/src/lib/logger.js';
 import path from 'path';
 
 export async function deploy(job: any) {

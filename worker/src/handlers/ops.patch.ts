@@ -1,6 +1,6 @@
 import { Octokit } from 'octokit';
-import { enqueue } from '../../server/src/lib/queue.js';
-import { logger } from '../../server/src/lib/logger.js';
+import { enqueue } from '../../../server/src/lib/queue.js';
+import { logger } from '../../../server/src/lib/logger.js';
 
 export async function opsPatch(job: any) {
   const { payload } = job;

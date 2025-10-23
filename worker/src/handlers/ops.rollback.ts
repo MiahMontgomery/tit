@@ -1,5 +1,5 @@
 import { Octokit } from 'octokit';
-import { logger } from '../../server/src/lib/logger.js';
+import { logger } from '../../../server/src/lib/logger.js';
 
 export async function opsRollback(job: any) {
   const { payload } = job;
