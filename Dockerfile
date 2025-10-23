@@ -17,6 +17,9 @@ RUN npm ci
 COPY . .
 RUN mkdir -p /data/storage
 
+# Generate Prisma client
+RUN npx prisma generate
+
 # Build both frontend and backend (vite + server build)
 RUN npm run build
 
