@@ -21,6 +21,7 @@
     "prisma:gen": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
+    "db:setup": "node scripts/setup-db.js",
     "migrate": "tsx server/migrate.ts",
     "worker": "tsx server/worker.ts",
     "smoke": "tsx scripts/smoke.ts",
