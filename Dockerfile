@@ -20,9 +20,6 @@ RUN mkdir -p /data/storage
 # Generate Prisma client
 RUN npx prisma generate
 
-# Run database migrations
-RUN npx prisma migrate deploy
-
 # Build both frontend and backend (vite + server build)
 RUN npm run build
 
