@@ -1,5 +1,5 @@
-# Use Node.js 18 Alpine for smaller image size
-FROM node:18-alpine
+# Use Node.js 20 Alpine for smaller image size
+FROM node:20-alpine
 
 # System deps for Puppeteer (already installed Chromium)
 RUN apk add --no-cache     chromium     nss     freetype     freetype-dev     harfbuzz     ca-certificates     ttf-freefont
@@ -19,6 +19,9 @@ RUN mkdir -p /data/storage
 
 # Generate Prisma client
 RUN npx prisma generate
+
+# Run database migrations
+RUN npx prisma migrate deploy
 
 # Build both frontend and backend (vite + server build)
 RUN npm run build
