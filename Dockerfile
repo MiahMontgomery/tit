@@ -17,6 +17,9 @@ RUN npm ci
 COPY . .
 RUN mkdir -p /data/storage
 
+# Ensure Prisma migrations directory exists
+RUN mkdir -p prisma/migrations
+
 # Generate Prisma client
 RUN npx prisma generate
 
