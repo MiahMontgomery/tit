@@ -9,6 +9,7 @@ import { generalRateLimit } from "./middleware/rateLimit.js";
 import routes from "./routes/index.js";
 import metricsRouter from "./routes/metrics.js";
 import { incrementMetric } from "./routes/metrics.js";
+import { prisma } from "./lib/db.js";
 
 const app = express();
 const server = createServer(app);
@@ -70,7 +71,60 @@ app.use((req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Initialize and start server
+async function startServer() {
+  try {
+    // Test database connection
+    await prisma.$connect();
+    console.log('✅ Database connected successfully');
+
+    // Start HTTP server
+    const port = process.env.PORT || 3000;
+    server.listen(port, () => {
+      logger.info("Titan backend server started", { 
+        port, 
+        environment: process.env.NODE_ENV || "development" 
+      });
+      
+      console.log(`🚀 Titan backend running on port ${port}`);
+      console.log(`📊 Health check: http://localhost:${port}/api/health`);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+
+  } catch (error) {
+    logger.error("Failed to start server", { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    process.exit(1);
+  }
+}
+
+async function gracefulShutdown() {
+  logger.info("Graceful shutdown initiated");
+  
+  try {
+    // Stop accepting new connections
+    server.close(() => {
+      logger.info("HTTP server closed");
+    });
+
+    // Close database connection
+    await prisma.$disconnect();
+    logger.info("Database connection closed");
+
+    logger.info("Graceful shutdown completed");
+    process.exit(0);
+
+  } catch (error) {
+    logger.error("Error during graceful shutdown", { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();

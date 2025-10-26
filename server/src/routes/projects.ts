@@ -4,7 +4,6 @@ import { ProjectsRepo } from "../lib/repos/ProjectsRepo.js";
 import { RunsRepo } from "../lib/repos/RunsRepo.js";
 import { JobsRepo } from "../lib/repos/JobsRepo.js";
 import { ArtifactsRepo } from "../lib/repos/ArtifactsRepo.js";
-import { enqueue } from "../lib/queue.js";
 import { logger } from "../lib/logger.js";
 
 const router = Router();
@@ -59,7 +58,7 @@ router.post("/", async (req, res) => {
     });
     
     // Enqueue scaffold job
-    await enqueue({
+    await JobsRepo.enqueue({
       projectId: project.id,
       kind: 'scaffold',
       payload: {

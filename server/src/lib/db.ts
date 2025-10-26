@@ -1,31 +1,21 @@
 import { PrismaClient } from '@prisma/client';
 
-let db: PrismaClient | null = null;
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export async function getDb(): Promise<PrismaClient> {
-  if (!db) {
-    db = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
-    });
-    
-    // Test connection
-    try {
-      await db.$connect();
-      console.log('✅ Database connected successfully');
-    } catch (error) {
-      console.error('❌ Database connection failed:', error);
-      throw error;
-    }
-  }
-  
-  return db;
+  return prisma;
 }
 
 export async function closeDb(): Promise<void> {
-  if (db) {
-    await db.$disconnect();
-    db = null;
-  }
+  await prisma.$disconnect();
 }
 
 // Graceful shutdown

@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Project } from '@prisma/client';
+import { prisma } from '../db.js';
 
 export interface CreateProjectData {
   name: string;
