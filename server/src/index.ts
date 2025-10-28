@@ -18,14 +18,20 @@ const server = createServer(app);
 app.use(requestId());
 app.use(logRequest());
 
-// CORS configuration
-const allowedOrigins = process.env.NODE_ENV === "production" 
-  ? [process.env.FRONTEND_URL || "https://titan-app.vercel.app"]
-  : true;
+// CORS configuration - Allow both apex & www; add Cursor/localhost if you need local tests
+const allowed = [
+  'https://morteliv.com',
+  'https://www.morteliv.com',
+  'https://tit-heaw.onrender.com',
+];
 
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // allow curl/postman
+    if (allowed.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS: ${origin} not allowed`));
+  },
+  credentials: true,
 }));
 
 app.use(express.json({ limit: "2mb" }));
@@ -48,18 +54,10 @@ app.use("/api/metrics", metricsRouter);
 app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   incrementMetric('errors');
   
-  logger.error("Express error", { 
-    error: error.message, 
-    stack: error.stack,
-    path: req.path,
-    method: req.method,
-    requestId: req.requestId
-  });
-  
+  console.error('API Error:', error);
   res.status(500).json({
-    success: false,
-    error: "Internal server error",
-    requestId: req.requestId
+    ok: false,
+    message: error.message || 'Internal Server Error',
   });
 });
 

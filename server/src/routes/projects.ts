@@ -1,123 +1,45 @@
 import { Router } from "express";
+import { prisma } from "../lib/db.js";
 import { z } from "zod";
-import { ProjectsRepo } from "../lib/repos/ProjectsRepo.js";
-import { RunsRepo } from "../lib/repos/RunsRepo.js";
-import { JobsRepo } from "../lib/repos/JobsRepo.js";
-import { ArtifactsRepo } from "../lib/repos/ArtifactsRepo.js";
-import { logger } from "../lib/logger.js";
 
 const router = Router();
 
-// Validation schemas
-const createProjectSchema = z.object({
-  name: z.string().min(1).max(100),
-  type: z.string().min(1),
-  templateRef: z.string().optional(),
-  spec: z.record(z.any()).optional()
+const CreateProject = z.object({
+  name: z.string().min(1, 'Project name is required'),
+  description: z.string().optional(),
 });
 
-// GET /api/projects
-router.get("/", async (req, res) => {
+router.post('/', async (req, res, next) => {
   try {
-    const cursor = req.query.cursor as string;
-    const limit = parseInt(req.query.limit as string) || 20;
-    
-    const projects = await ProjectsRepo.getAll(cursor, limit);
-    
-    res.json({
-      success: true,
-      data: projects,
-      cursor: projects.length > 0 ? projects[projects.length - 1].id : null
-    });
-  } catch (error) {
-    logger.error("Failed to get projects", { error });
-    res.status(500).json({
-      success: false,
-      error: "Failed to get projects"
-    });
-  }
-});
-
-// POST /api/projects
-router.post("/", async (req, res) => {
-  try {
-    const data = createProjectSchema.parse(req.body);
-    
-    // Create project
-    const project = await ProjectsRepo.create({
-      name: data.name,
-      type: data.type,
-      templateRef: data.templateRef || 'persona/basic',
-      spec: data.spec || {}
-    });
-    
-    // Start a run
-    const run = await RunsRepo.start({
-      projectId: project.id,
-      pipeline: 'default'
-    });
-    
-    // Enqueue scaffold job
-    await JobsRepo.enqueue({
-      projectId: project.id,
-      kind: 'scaffold',
-      payload: {
-        templateRef: project.templateRef,
-        spec: project.spec
-      }
-    });
-    
-    logger.info("Project created", {
-      projectId: project.id,
-      name: project.name,
-      type: project.type
-    });
-    
-    res.json({
-      success: true,
-      data: { id: project.id }
-    });
-  } catch (error) {
-    logger.error("Failed to create project", { error });
-    res.status(500).json({
-      success: false,
-      error: "Failed to create project"
-    });
-  }
-});
-
-// GET /api/projects/:id
-router.get("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const project = await ProjectsRepo.get(id);
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        error: "Project not found"
-      });
-    }
-    
-    const latestRun = await RunsRepo.getLatestByProject(id);
-    const jobs = await JobsRepo.getByProject(id);
-    const artifacts = await ArtifactsRepo.getByProject(id);
-    
-    res.json({
-      success: true,
+    const parsed = CreateProject.parse(req.body);
+    const project = await prisma.project.create({
       data: {
-        project,
-        latestRun,
-        jobs,
-        artifacts
-      }
+        name: parsed.name,
+        description: parsed.description ?? null,
+      },
     });
-  } catch (error) {
-    logger.error("Failed to get project", { error, projectId: req.params.id });
-    res.status(500).json({
-      success: false,
-      error: "Failed to get project"
+    return res.status(201).json({ ok: true, project });
+  } catch (err: any) {
+    // Prisma known errors get clear messages
+    if (err.code && err.meta) {
+      return res.status(400).json({ ok: false, code: err.code, meta: err.meta });
+    }
+    if (err.name === 'ZodError') {
+      return res.status(400).json({ ok: false, validation: err.flatten() });
+    }
+    return next(err);
+  }
+});
+
+router.get('/', async (_req, res, next) => {
+  try {
+    const projects = await prisma.project.findMany({
+      orderBy: { id: 'desc' },
+      take: 50,
     });
+    return res.json({ ok: true, projects });
+  } catch (err) {
+    return next(err);
   }
 });
 
