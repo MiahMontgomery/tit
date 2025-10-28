@@ -28,4 +28,4 @@ RUN npm run build
 
 EXPOSE 3000
 ENV PORT=3000
-CMD ["npm", "start"]
+CMD ["bash", "-c", "npx prisma migrate deploy && npm start"]
