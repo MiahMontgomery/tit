@@ -1,24 +1,11 @@
 import express from "express";
-import { createServer } from "http";
 import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
-import { logger } from "./lib/logger.js";
-import { requestId, logRequest } from "./middleware/requestId.js";
-import { generalRateLimit } from "./middleware/rateLimit.js";
-import routes from "./routes/index.js";
-import metricsRouter from "./routes/metrics.js";
-import { incrementMetric } from "./routes/metrics.js";
 import { prisma } from "./lib/db.js";
+import { z } from "zod";
 
 const app = express();
-const server = createServer(app);
 
-// Middleware
-app.use(requestId());
-app.use(logRequest());
-
-// CORS configuration - Allow both apex & www; add Cursor/localhost if you need local tests
+// CORS configuration
 const allowed = [
   'https://morteliv.com',
   'https://www.morteliv.com',
@@ -34,26 +21,69 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+app.use(express.json({ limit: "1mb" }));
 
-// Rate limiting
-app.use(generalRateLimit);
-
-// Request metrics
-app.use((req, res, next) => {
-  incrementMetric('requests');
-  next();
+// Validation schema
+const CreateProject = z.object({
+  name: z.string().min(1, 'Project name is required'),
+  description: z.string().optional(),
 });
 
-// Routes
-app.use(routes);
-app.use("/api/metrics", metricsRouter);
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({
+    ok: true,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
 
-// Error handling
+// Create project
+app.post("/api/projects", async (req, res, next) => {
+  try {
+    const parsed = CreateProject.parse(req.body);
+    const project = await prisma.project.create({
+      data: {
+        name: parsed.name,
+        description: parsed.description ?? null,
+      },
+    });
+    return res.status(201).json({ ok: true, project });
+  } catch (err: any) {
+    if (err.code && err.meta) {
+      return res.status(400).json({ ok: false, code: err.code, meta: err.meta });
+    }
+    if (err.name === 'ZodError') {
+      return res.status(400).json({ ok: false, validation: err.flatten() });
+    }
+    return next(err);
+  }
+});
+
+// List projects
+app.get("/api/projects", async (req, res, next) => {
+  try {
+    const projects = await prisma.project.findMany({
+      orderBy: { id: 'desc' },
+      take: 50,
+    });
+    return res.json({ ok: true, projects });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// Root endpoint
+app.get("/", (req, res) => {
+  res.json({
+    message: "Titan Backend API",
+    version: "1.0.0",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Error handler
 app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  incrementMetric('errors');
-  
   console.error('API Error:', error);
   res.status(500).json({
     ok: false,
@@ -64,65 +94,14 @@ app.use((error: Error, req: express.Request, res: express.Response, next: expres
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
-    success: false,
+    ok: false,
     error: "Not found"
   });
 });
 
-// Initialize and start server
-async function startServer() {
-  try {
-    // Test database connection
-    await prisma.$connect();
-    console.log('✅ Database connected successfully');
-
-    // Start HTTP server
-    const port = process.env.PORT || 3000;
-    server.listen(port, () => {
-      logger.info("Titan backend server started", { 
-        port, 
-        environment: process.env.NODE_ENV || "development" 
-      });
-      
-      console.log(`🚀 Titan backend running on port ${port}`);
-      console.log(`📊 Health check: http://localhost:${port}/api/health`);
-    });
-
-    // Graceful shutdown
-    process.on('SIGTERM', gracefulShutdown);
-    process.on('SIGINT', gracefulShutdown);
-
-  } catch (error) {
-    logger.error("Failed to start server", { 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
-    process.exit(1);
-  }
-}
-
-async function gracefulShutdown() {
-  logger.info("Graceful shutdown initiated");
-  
-  try {
-    // Stop accepting new connections
-    server.close(() => {
-      logger.info("HTTP server closed");
-    });
-
-    // Close database connection
-    await prisma.$disconnect();
-    logger.info("Database connection closed");
-
-    logger.info("Graceful shutdown completed");
-    process.exit(0);
-
-  } catch (error) {
-    logger.error("Error during graceful shutdown", { 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
-    process.exit(1);
-  }
-}
-
-// Start the server
-startServer();
+// Start server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`🚀 Titan backend running on port ${port}`);
+  console.log(`📊 Health check: http://localhost:${port}/api/health`);
+});
