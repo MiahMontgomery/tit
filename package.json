@@ -10,7 +10,7 @@
     "build:server": "esbuild server/src/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:worker": "esbuild worker/src/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:frontend": "vite build",
-    "start": "NODE_ENV=production node dist/index.js",
+    "start": "npx prisma migrate deploy && node dist/index.js",
     "start:worker": "NODE_ENV=production node dist/worker/index.js",
     "start:dev": "NODE_ENV=development tsx server/src/index.ts",
     "start:dev:worker": "NODE_ENV=development tsx worker/src/index.ts",
