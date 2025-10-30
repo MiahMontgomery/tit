@@ -1,5 +1,7 @@
+import http from 'http';
 import { claimNext, markDone, markErrorOrRetry } from '../../server/src/lib/queue.js';
 import { logger } from '../../server/src/lib/logger.js';
+import { prisma } from '../../server/src/lib/db.js';
 import { scaffold } from './handlers/scaffold.js';
 import { build } from './handlers/build.js';
 import { deploy } from './handlers/deploy.js';
@@ -15,6 +17,7 @@ import { opsRollback } from './handlers/ops.rollback.js';
 
 const POLL_INTERVAL = 500; // 500ms
 let isRunning = false;
+let healthServer: http.Server | null = null;
 
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -110,10 +113,47 @@ async function mainLoop(): Promise<void> {
         await sleep(POLL_INTERVAL);
       }
     } catch (error) {
-      logger.error('Error in main loop', { error });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error('Error in main loop', { 
+        error: errorMessage,
+        stack: errorStack,
+        errorType: error instanceof Error ? error.constructor.name : typeof error
+      });
       await sleep(POLL_INTERVAL);
     }
   }
+}
+
+async function startHealthServer(port: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    healthServer = http.createServer((req, res) => {
+      if (req.url === '/health' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          status: 'ok', 
+          service: 'titan-worker',
+          timestamp: new Date().toISOString()
+        }));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Not found' }));
+      }
+    });
+
+    healthServer.listen(port, '0.0.0.0', () => {
+      logger.info(`Health check server listening on port ${port}`);
+      resolve();
+    });
+
+    healthServer.on('error', (error) => {
+      logger.error('Health server error', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      reject(error);
+    });
+  });
 }
 
 async function start(): Promise<void> {
@@ -122,15 +162,44 @@ async function start(): Promise<void> {
     return;
   }
 
-  isRunning = true;
-  logger.info('Starting Titan worker');
-  
-  // Start heartbeat
-  setInterval(() => {
-    logger.info('Worker heartbeat');
-  }, 60000); // Every minute
-  
-  await mainLoop();
+  try {
+    // Initialize database connection
+    logger.info('Testing database connection...');
+    await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
+    logger.info('Database connection established');
+
+    // Start health check HTTP server (required for Render deployment)
+    const port = Number(process.env.PORT) || 10000;
+    await startHealthServer(port);
+
+    isRunning = true;
+    logger.info('Starting Titan worker');
+    
+    // Start heartbeat
+    setInterval(() => {
+      logger.info('Worker heartbeat');
+    }, 60000); // Every minute
+    
+    // Start main loop (non-blocking)
+    mainLoop().catch((error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error('Main loop exited with error', { 
+        error: errorMessage,
+        stack: errorStack
+      });
+      process.exit(1);
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error('Failed to start worker', { 
+      error: errorMessage,
+      stack: errorStack
+    });
+    throw error;
+  }
 }
 
 async function stop(): Promise<void> {
@@ -141,6 +210,26 @@ async function stop(): Promise<void> {
 
   logger.info('Stopping Titan worker');
   isRunning = false;
+  
+  // Close health server
+  if (healthServer) {
+    await new Promise<void>((resolve) => {
+      healthServer!.close(() => {
+        logger.info('Health server closed');
+        resolve();
+      });
+    });
+  }
+  
+  // Close database connection
+  try {
+    await prisma.$disconnect();
+    logger.info('Database connection closed');
+  } catch (error) {
+    logger.warn('Error closing database connection', { 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 }
 
 // Handle graceful shutdown
@@ -158,6 +247,11 @@ process.on('SIGTERM', async () => {
 
 // Start the worker
 start().catch((error) => {
-  logger.error('Failed to start worker', { error });
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  const errorStack = error instanceof Error ? error.stack : undefined;
+  logger.error('Failed to start worker', { 
+    error: errorMessage,
+    stack: errorStack
+  });
   process.exit(1);
 });
