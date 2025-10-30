@@ -22,7 +22,13 @@ export class JobsRepo {
   static async claimNext() {
     // Transactionally claim the next queued job
     return await prisma.$transaction(async (tx) => {
-      const job = await tx.job.findFirst({
+      // Defensive: if job model is missing (pre-migration), avoid crashing
+      const jobModel = (tx as any).job;
+      if (!jobModel) {
+        return null;
+      }
+
+      const job = await jobModel.findFirst({
         where: { status: 'queued' },
         orderBy: { createdAt: 'asc' }
       });
@@ -31,7 +37,7 @@ export class JobsRepo {
         return null;
       }
 
-      return await tx.job.update({
+      return await jobModel.update({
         where: { id: job.id },
         data: { 
           status: 'running',
