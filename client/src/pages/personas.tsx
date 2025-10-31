@@ -23,7 +23,8 @@ function PersonasPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/personas');
+        const apiBase = import.meta.env.VITE_API_BASE || '';
+        const res = await fetch(`${apiBase}/api/personas`);
         if (res.ok) {
           const json = await res.json();
           const list = json.data || [];

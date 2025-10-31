@@ -39,7 +39,8 @@ export default function PersonaModal({ isOpen, onClose, onCreated }: PersonaModa
     if (!name.trim() || !role.trim()) return;
     setIsLoading(true);
     try {
-      const response = await fetch("/api/personas", {
+      const apiBase = import.meta.env.VITE_API_BASE || '';
+      const response = await fetch(`${apiBase}/api/personas`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

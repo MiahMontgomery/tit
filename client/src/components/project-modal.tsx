@@ -31,7 +31,8 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
     setIsLoading(true);
     try {
       // Create project directly - backend will generate features and hierarchy
-      const response = await fetch('/api/projects', {
+      const apiBase = import.meta.env.VITE_API_BASE || '';
+      const response = await fetch(`${apiBase}/api/projects`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
