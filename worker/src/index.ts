@@ -169,9 +169,12 @@ async function start(): Promise<void> {
     await prisma.$queryRaw`SELECT 1`;
     logger.info('Database connection established');
 
-    // Start health check HTTP server (required for Render deployment)
-    const port = Number(process.env.PORT) || 10000;
-    await startHealthServer(port);
+    // Start health check HTTP server only in standalone mode to avoid port conflicts
+    const enableWorkerHttp = process.env.WORKER_HTTP === '1';
+    if (enableWorkerHttp) {
+      const port = Number(process.env.PORT) || 10000;
+      await startHealthServer(port);
+    }
 
     isRunning = true;
     logger.info('Starting Titan worker');
