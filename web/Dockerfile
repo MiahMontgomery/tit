@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --ignore-scripts
 COPY . .
-ENV VITE_API_BASE="/api"
+ENV VITE_API_BASE="https://tit-heaw.onrender.com"
 RUN npm run build
 
 # serve
