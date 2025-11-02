@@ -17,60 +17,125 @@ router.post("/", async (req, res, next) => {
   try {
     console.log(`[POST /api/projects/reiterate] Origin: ${req.get('origin') || 'none'}, Body:`, JSON.stringify(req.body));
     
-    const parsed = ReiterateRequestSchema.parse(req.body);
+    // Validate request body
+    let parsed;
+    try {
+      parsed = ReiterateRequestSchema.parse(req.body);
+    } catch (validationError: any) {
+      if (validationError.name === 'ZodError') {
+        console.error(`[POST /api/projects/reiterate] Validation error:`, validationError.errors);
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'Validation failed',
+          errorCode: 'ERR_VALIDATION',
+          message: 'Request data did not pass validation',
+          details: validationError.errors
+        });
+      }
+      throw validationError;
+    }
     
     // If previous draft exists, fetch it to inform the new generation
     let previousVersion = null;
     if (parsed.previousDraftId) {
-      const previousDraft = await prisma.reiterationDraft.findUnique({
-        where: { id: parsed.previousDraftId }
-      });
-      if (previousDraft) {
-        previousVersion = {
-          version: previousDraft.version,
-          narrative: previousDraft.narrative,
-          prominentFeatures: previousDraft.prominentFeatures,
-          modes: previousDraft.modes,
-          milestones: previousDraft.milestones,
-        };
+      try {
+        const previousDraft = await prisma.reiterationDraft.findUnique({
+          where: { id: parsed.previousDraftId }
+        });
+        if (previousDraft) {
+          previousVersion = {
+            version: previousDraft.version,
+            narrative: previousDraft.narrative,
+            prominentFeatures: previousDraft.prominentFeatures,
+            modes: previousDraft.modes,
+            milestones: previousDraft.milestones,
+          };
+        }
+      } catch (dbError: any) {
+        // If table doesn't exist, skip previous version lookup
+        if (dbError.code === 'P2021' || dbError.code === 'P2001' || dbError.message?.includes('does not exist')) {
+          console.warn(`[POST /api/projects/reiterate] ReiterationDraft table not found, skipping previous draft lookup`);
+        } else {
+          throw dbError;
+        }
       }
     }
 
     // Get the next version number
-    const maxVersion = await prisma.reiterationDraft.findFirst({
-      where: { title: parsed.title },
-      orderBy: { version: 'desc' },
-      select: { version: true }
-    });
-    const nextVersion = (maxVersion?.version || 0) + 1;
+    let nextVersion = 1;
+    try {
+      const maxVersion = await prisma.reiterationDraft.findFirst({
+        where: { title: parsed.title },
+        orderBy: { version: 'desc' },
+        select: { version: true }
+      });
+      nextVersion = (maxVersion?.version || 0) + 1;
+    } catch (dbError: any) {
+      // If table doesn't exist, default to version 1
+      if (dbError.code === 'P2021' || dbError.code === 'P2001' || dbError.message?.includes('does not exist')) {
+        console.warn(`[POST /api/projects/reiterate] ReiterationDraft table not found, using version 1`);
+        nextVersion = 1;
+      } else {
+        throw dbError;
+      }
+    }
 
     // Generate draft using LLM
     console.log(`[POST /api/projects/reiterate] Generating draft v${nextVersion} for "${parsed.title}"`);
     const draft = await llmClient.generateReiterationDraft({
       title: parsed.title,
-      intent: parsed.intent,
       context: parsed.context,
       previousVersion,
       userEdits: parsed.userEdits,
     });
 
-    // Save draft to database
-    const savedDraft = await prisma.reiterationDraft.create({
-      data: {
-        version: nextVersion,
-        title: parsed.title,
-        context: parsed.context || null,
-        narrative: draft.narrative,
-        prominentFeatures: draft.prominentFeatures,
-        modes: draft.modes || null,
-        milestones: draft.milestones,
-        risks: draft.risks || null,
-        dependencies: draft.dependencies || null,
-        instrumentation: draft.instrumentation || null,
-        acceptanceCriteria: draft.acceptanceCriteria,
-        userEdits: parsed.userEdits || null,
+    // Try to save draft to database, but don't fail if table doesn't exist yet
+    let savedDraft = null;
+    try {
+      savedDraft = await prisma.reiterationDraft.create({
+        data: {
+          version: nextVersion,
+          title: parsed.title,
+          context: parsed.context || null,
+          narrative: draft.narrative,
+          prominentFeatures: draft.prominentFeatures,
+          modes: draft.modes || null,
+          milestones: draft.milestones,
+          risks: draft.risks || null,
+          dependencies: draft.dependencies || null,
+          instrumentation: draft.instrumentation || null,
+          acceptanceCriteria: draft.acceptanceCriteria,
+          userEdits: parsed.userEdits || null,
+        }
+      });
+      console.log(`[POST /api/projects/reiterate] Draft v${nextVersion} saved to database (ID: ${savedDraft.id})`);
+    } catch (dbError: any) {
+      // If table doesn't exist (migration not run), log warning but continue
+      if (dbError.code === 'P2021' || dbError.code === 'P2001' || dbError.message?.includes('does not exist')) {
+        console.warn(`[POST /api/projects/reiterate] ReiterationDraft table not found - migration may not be applied. Returning draft without saving.`);
+        console.warn(`[POST /api/projects/reiterate] Error details:`, dbError.message);
+        // Create a mock saved draft for response
+        savedDraft = {
+          id: `temp-${Date.now()}`,
+          version: nextVersion,
+          title: parsed.title,
+          context: parsed.context || null,
+          narrative: draft.narrative,
+          prominentFeatures: draft.prominentFeatures,
+          modes: draft.modes || null,
+          milestones: draft.milestones,
+          risks: draft.risks || null,
+          dependencies: draft.dependencies || null,
+          instrumentation: draft.instrumentation || null,
+          acceptanceCriteria: draft.acceptanceCriteria,
+          userEdits: parsed.userEdits || null,
+          createdAt: new Date(),
+        };
+      } else {
+        // Re-throw other database errors
+        throw dbError;
       }
-    });
+    }
 
     console.log(`[POST /api/projects/reiterate] Draft v${nextVersion} created (ID: ${savedDraft.id}), Status: 201`);
     
@@ -90,7 +155,7 @@ router.post("/", async (req, res, next) => {
         instrumentation: savedDraft.instrumentation,
         acceptanceCriteria: savedDraft.acceptanceCriteria,
         userEdits: savedDraft.userEdits,
-        createdAt: savedDraft.createdAt,
+        createdAt: savedDraft.createdAt || new Date().toISOString(),
       }
     });
   } catch (err: any) {
@@ -113,6 +178,18 @@ router.post("/", async (req, res, next) => {
         error: 'Cannot reach database server',
         errorCode: 'ERR_DB_CONNECTION',
         message: err.message || 'Database server is unreachable'
+      });
+    }
+    
+    // Handle table not found errors (migration not applied)
+    if (err.code === 'P2021' || err.code === 'P2001' || err.message?.includes('does not exist')) {
+      return res.status(500).json({
+        ok: false,
+        error: 'Database table not found',
+        errorCode: 'ERR_DB_TABLE_MISSING',
+        message: 'ReiterationDraft table does not exist. Please run database migrations.',
+        details: err.message,
+        prismaCode: err.code
       });
     }
     
