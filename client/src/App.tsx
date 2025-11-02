@@ -25,7 +25,7 @@ function Router() {
 
 function App() {
   return (
-    <div className="dark">
+    <div className="dark" style={{ minHeight: '100vh', backgroundColor: '#050505', color: '#e0e0e0' }}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />

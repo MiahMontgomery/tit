@@ -24,6 +24,15 @@ export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Safety check
+  if (!project || !project.id) {
+    return (
+      <div className="p-6 text-red-400">
+        Invalid project data
+      </div>
+    );
+  }
+
   const deleteProjectMutation = useMutation({
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/projects/${id}`);

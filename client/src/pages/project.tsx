@@ -11,8 +11,16 @@ export default function ProjectPage() {
 
   const { data: projects, isLoading, error } = useQuery({
     queryKey: ['projects-overview'],
-    queryFn: () => getProjectsOverview(),
+    queryFn: async () => {
+      try {
+        return await getProjectsOverview();
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+        throw err;
+      }
+    },
     refetchOnMount: true, // Always refetch when navigating to project page
+    retry: 1,
   });
 
   if (isLoading) {
@@ -78,14 +86,47 @@ export default function ProjectPage() {
     );
   }
 
-  return (
-    <div style={{ backgroundColor: '#050505', minHeight: '100vh', padding: '1rem' }}>
-      <ExpandedProject 
-        project={project} 
-        onClose={() => window.location.href = '/'}
-      />
-    </div>
-  );
+  // Safety check - ensure we have a valid project before rendering
+  if (!project || !project.id) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-4" style={{ backgroundColor: '#050505', color: '#e0e0e0' }}>
+        <div className="text-yellow-400 text-lg font-medium">Invalid project data</div>
+        <button
+          onClick={() => window.location.href = '/'}
+          className="px-4 py-2 rounded border"
+          style={{ borderColor: '#40e0d0', color: '#40e0d0' }}
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  try {
+    return (
+      <div style={{ backgroundColor: '#050505', minHeight: '100vh', padding: '1rem' }}>
+        <ExpandedProject 
+          project={project} 
+          onClose={() => window.location.href = '/'}
+        />
+      </div>
+    );
+  } catch (renderError) {
+    console.error('Error rendering project page:', renderError);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-4" style={{ backgroundColor: '#050505', color: '#e0e0e0' }}>
+        <div className="text-red-400 text-lg font-medium">Error rendering project</div>
+        <div className="text-red-300 text-sm">{renderError instanceof Error ? renderError.message : 'Unknown error'}</div>
+        <button
+          onClick={() => window.location.href = '/'}
+          className="px-4 py-2 rounded border"
+          style={{ borderColor: '#40e0d0', color: '#40e0d0' }}
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    );
+  }
 }
 
 
