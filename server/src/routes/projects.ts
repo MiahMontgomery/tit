@@ -33,7 +33,14 @@ router.post('/', async (req, res, next) => {
 
 router.get('/', async (_req, res, next) => {
   try {
+    // Only select fields that exist in current database schema
     const projects = await prisma.project.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        createdAt: true,
+      },
       orderBy: { id: 'desc' },
       take: 50,
     });
