@@ -30,10 +30,6 @@ app.use("/api/projects/reiterate", reiterateRouter);
 // Validation schema
 const CreateProject = z.object({
   name: z.string().min(1, 'Project name is required'),
-  title: z.string().optional(),
-  intent: z.string().optional(),
-  context: z.any().optional(),
-  modeSelection: z.string().optional(),
   description: z.string().optional(),
   charter: z.object({
     narrative: z.string(),
@@ -80,15 +76,19 @@ app.post("/api/projects", async (req, res, next) => {
     // Create project
     let project;
     try {
+      // Only include fields that exist in the current schema
+      // Check if schema has new fields by trying a minimal create first
+      const projectData: any = {
+        name: parsed.name || 'Untitled Project',
+      };
+      
+      // Only add description if it's provided
+      if (parsed.description) {
+        projectData.description = parsed.description;
+      }
+      
       project = await prisma.project.create({
-        data: {
-          name: parsed.name || parsed.title || 'Untitled Project',
-          title: parsed.title || parsed.name || null,
-          intent: parsed.intent || null,
-          context: parsed.context || null,
-          modeSelection: parsed.modeSelection || null,
-          description: parsed.description ?? null,
-        },
+        data: projectData,
       });
     } catch (dbError: any) {
       if (dbError.code === 'P1001') {

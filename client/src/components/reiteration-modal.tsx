@@ -15,7 +15,6 @@ interface ReiterationDraft {
   draftId: string;
   version: number;
   title: string;
-  intent?: string;
   context?: any;
   narrative: string;
   prominentFeatures: any[];
@@ -38,8 +37,7 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
   const [, setLocation] = useLocation();
   const [state, setState] = useState<State>('idle');
   const [title, setTitle] = useState('');
-  const [intent, setIntent] = useState('');
-  const [context, setContext] = useState('');
+  const [description, setDescription] = useState('');
   const [draft, setDraft] = useState<ReiterationDraft | null>(null);
   const [userEdits, setUserEdits] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +46,7 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
     if (state === 'creating_project') return; // Prevent closing during creation
     setState('idle');
     setTitle('');
-    setIntent('');
-    setContext('');
+    setDescription('');
     setDraft(null);
     setUserEdits('');
     setError(null);
@@ -62,13 +59,12 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
       setState('generating_draft');
       
       try {
-        const response = await fetchApi('/api/projects/reiterate', {
+          const response = await fetchApi('/api/projects/reiterate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: title.trim(),
-            intent: intent.trim() || undefined,
-            context: context.trim() ? { text: context.trim() } : undefined,
+            context: description.trim() ? { text: description.trim() } : undefined,
             previousDraftId: draft?.draftId,
             userEdits: userEdits.trim() || undefined,
           }),
@@ -109,11 +105,7 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: draft.title,
-          title: draft.title,
-          intent: draft.intent,
-          context: draft.context,
-          modeSelection: draft.modes?.find(m => m.selected)?.type || null,
-          description: draft.narrative.substring(0, 500),
+          description: description.trim() || draft.narrative.substring(0, 500),
           charter: {
             narrative: draft.narrative,
             prominentFeatures: draft.prominentFeatures,
@@ -205,32 +197,14 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
               </div>
 
               <div>
-                <Label htmlFor="intent" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
-                  Intent (Optional)
-                </Label>
-                <Input
-                  id="intent"
-                  value={intent}
-                  onChange={(e) => setIntent(e.target.value)}
-                  placeholder="Brief project intent or goal"
-                  className="mt-1"
-                  style={{ 
-                    backgroundColor: '#111111', 
-                    borderColor: '#333333', 
-                    color: '#e0e0e0' 
-                  }}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="context" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
-                  Context (Optional)
+                <Label htmlFor="description" className="text-sm font-medium" style={{ color: '#e0e0e0' }}>
+                  Description (Optional)
                 </Label>
                 <Textarea
-                  id="context"
-                  value={context}
-                  onChange={(e) => setContext(e.target.value)}
-                  placeholder="Additional context, requirements, or constraints"
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Project description, goals, or requirements"
                   className="mt-1 min-h-[120px]"
                   style={{ 
                     backgroundColor: '#111111', 

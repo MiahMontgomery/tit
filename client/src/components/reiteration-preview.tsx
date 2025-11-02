@@ -46,9 +46,6 @@ export function ReiterationPreview({ draft }: ReiterationPreviewProps) {
       {/* Header */}
       <div className="border-b pb-4" style={{ borderColor: '#333333' }}>
         <h3 className="text-xl font-bold mb-2" style={{ color: '#e0e0e0' }}>{draft.title}</h3>
-        {draft.intent && (
-          <p className="text-sm" style={{ color: '#888888' }}>{draft.intent}</p>
-        )}
         <Badge className="mt-2" style={{ backgroundColor: '#333333', color: '#40e0d0' }}>
           Draft v{draft.version}
         </Badge>

@@ -7,7 +7,6 @@ const router = Router();
 
 const ReiterateRequestSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  intent: z.string().optional(),
   context: z.any().optional(),
   previousDraftId: z.string().optional(),
   userEdits: z.string().optional(),
@@ -60,7 +59,6 @@ router.post("/", async (req, res, next) => {
       data: {
         version: nextVersion,
         title: parsed.title,
-        intent: parsed.intent || null,
         context: parsed.context || null,
         narrative: draft.narrative,
         prominentFeatures: draft.prominentFeatures,
@@ -82,7 +80,6 @@ router.post("/", async (req, res, next) => {
         draftId: savedDraft.id,
         version: savedDraft.version,
         title: savedDraft.title,
-        intent: savedDraft.intent,
         context: savedDraft.context,
         narrative: savedDraft.narrative,
         prominentFeatures: savedDraft.prominentFeatures,

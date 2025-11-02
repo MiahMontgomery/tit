@@ -130,7 +130,6 @@ Provide a concise description that explains what needs to be done.`;
 
   async generateReiterationDraft(params: {
     title: string;
-    intent?: string;
     context?: any;
     previousVersion?: any;
     userEdits?: string;
@@ -144,17 +143,16 @@ Provide a concise description that explains what needs to be done.`;
     instrumentation: any[];
     acceptanceCriteria: any[];
   }> {
-    const { title, intent, context, previousVersion, userEdits } = params;
+    const { title, context, previousVersion, userEdits } = params;
     
     const contextText = context?.text || (typeof context === 'string' ? context : JSON.stringify(context));
-    const hasContext = !!(intent || contextText);
+    const hasContext = !!contextText;
     
     let prompt = `You are an expert project architect and technical advisor. Your task is to create a comprehensive, intelligent project plan that reasons about the project requirements and provides actionable recommendations.
 
 PROJECT REQUEST:
 Title: ${title}
-${intent ? `Intent: ${intent}` : ''}
-${contextText ? `Context/Details:\n${contextText}` : ''}
+${contextText ? `Description/Context:\n${contextText}` : ''}
 
 ${previousVersion ? `PREVIOUS DRAFT (v${previousVersion.version}):\n${JSON.stringify(previousVersion, null, 2)}\n\nThe user reviewed this and wants changes.` : ''}
 ${userEdits ? `USER FEEDBACK/REQUESTS:\n"${userEdits}"\n\nIncorporate this feedback into a new, improved draft.` : ''}
