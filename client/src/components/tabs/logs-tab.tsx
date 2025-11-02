@@ -13,15 +13,14 @@ export function LogsTab({ projectId }: LogsTabProps) {
     queryFn: async () => {
       const response = await fetchApi(`/api/projects/${projectId}/logs`);
       if (!response.ok) {
-        if (response.status === 404) {
-          return []; // Return empty array for missing project
-        }
-        throw new Error('Failed to fetch logs');
+        // Return empty array on any error - backend now returns empty arrays
+        return [];
       }
-      return response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 5000, // Real-time updates
-    retry: false, // Don't retry on 404
+    retry: false, // Don't retry - return empty array instead
   });
 
   const formatTimestamp = (timestamp: Date) => {
@@ -56,15 +55,7 @@ export function LogsTab({ projectId }: LogsTabProps) {
     );
   }
 
-  if (error) {
-    return (
-      <div data-testid="logs-error" className="text-center py-12">
-        <div style={{ color: '#ff6b6b' }}>
-          Failed to load logs. Please try refreshing.
-        </div>
-      </div>
-    );
-  }
+  // Errors are now handled by returning empty arrays - show empty state instead
 
   if (logs.length === 0) {
     return (

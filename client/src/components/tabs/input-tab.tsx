@@ -580,19 +580,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
     );
   }
 
-  // Show error state
-  if (messagesError || memoriesError) {
-    return (
-      <div className="flex items-center justify-center h-64" style={{ backgroundColor: '#050505' }}>
-        <div className="text-center">
-          <XCircle className="h-8 w-8 mx-auto mb-4" style={{ color: '#ff6b6b' }} />
-          <p className="text-sm" style={{ color: '#ff6b6b' }}>
-            Failed to load project data. Please try refreshing.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Errors are now handled by returning empty arrays - no error display needed
 
   return (
     <div className="flex h-full" style={{ backgroundColor: '#050505' }}>
