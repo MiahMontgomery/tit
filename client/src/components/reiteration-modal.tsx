@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +36,7 @@ interface ReiterationModalProps {
 
 export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const [state, setState] = useState<State>('idle');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -132,9 +134,17 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
         throw new Error('Project created but no ID returned');
       }
 
+      // Invalidate projects query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['projects-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+
       setState('done');
       handleClose();
-      setLocation(`/projects/${projectId}`);
+      
+      // Small delay to ensure query invalidation completes
+      setTimeout(() => {
+        setLocation(`/projects/${projectId}`);
+      }, 100);
     } catch (err) {
       console.error('Error creating project:', err);
       setError(err instanceof Error ? err.message : 'Failed to create project');

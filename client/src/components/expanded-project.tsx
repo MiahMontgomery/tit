@@ -61,21 +61,33 @@ export function ExpandedProject({ project, onClose }: ExpandedProjectProps) {
   ] as const;
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case "progress":
-        return <ProgressTab projectId={project.id} pat={undefined} />;
-      case "input":
-        return <InputTab projectId={project.id} />;
-      case "logs":
-        return <LogsTab projectId={project.id} />;
-      case "output":
-        return <OutputTab projectId={project.id} />;
-      case "sales":
-        return <SalesTab projectId={project.id} />;
-      case "code":
-        return <DesktopCodeEditor projectId={project.id} />;
-      default:
-        return null;
+    // Ensure projectId is always a string for consistency
+    const projectId = String(project.id);
+    
+    try {
+      switch (activeTab) {
+        case "progress":
+          return <ProgressTab projectId={projectId} pat={undefined} />;
+        case "input":
+          return <InputTab projectId={projectId} />;
+        case "logs":
+          return <LogsTab projectId={projectId} />;
+        case "output":
+          return <OutputTab projectId={projectId} />;
+        case "sales":
+          return <SalesTab projectId={projectId} />;
+        case "code":
+          return <DesktopCodeEditor projectId={projectId} />;
+        default:
+          return null;
+      }
+    } catch (error) {
+      console.error('Error rendering tab content:', error);
+      return (
+        <div className="p-4 text-red-400">
+          Error loading tab content. Please try refreshing the page.
+        </div>
+      );
     }
   };
 
