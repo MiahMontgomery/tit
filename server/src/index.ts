@@ -183,9 +183,16 @@ app.get("/api/projects", async (req, res, next) => {
     }
 
     // Attempt to query database
+    // Only select fields that exist in current database schema
     let projects;
     try {
       projects = await prisma.project.findMany({
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          createdAt: true,
+        },
         orderBy: { id: 'desc' },
         take: 50,
       });
