@@ -101,15 +101,15 @@ export function InputTab({ projectId, pat }: InputTabProps) {
     queryFn: async () => {
       const response = await fetchApi(`/api/projects/${projectId}/messages?limit=50`);
       if (!response.ok) {
-        if (response.status === 404) {
-          return []; // Return empty array for missing project
-        }
-        throw new Error('Failed to fetch messages');
+        // Return empty array on any error - backend now returns empty arrays
+        return [];
       }
-      return response.json();
+      const data = await response.json();
+      // Handle both array responses and object responses
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 2000, // Real-time updates
-    retry: false, // Don't retry on 404
+    retry: false, // Don't retry - return empty array instead
   });
 
   // Fetch memories for the project
@@ -118,15 +118,14 @@ export function InputTab({ projectId, pat }: InputTabProps) {
     queryFn: async () => {
       const response = await fetchApi(`/api/projects/${projectId}/memory?limit=20`);
       if (!response.ok) {
-        if (response.status === 404) {
-          return []; // Return empty array for missing project
-        }
-        throw new Error('Failed to fetch memories');
+        // Return empty array on any error - backend now returns empty arrays
+        return [];
       }
-      return response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 5000, // Less frequent updates
-    retry: false, // Don't retry on 404
+    retry: false, // Don't retry - return empty array instead
   });
 
   // Send task mutation

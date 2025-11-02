@@ -140,10 +140,15 @@ export function OutputTab({ projectId }: OutputTabProps) {
     queryKey: ['proofs', projectId],
     queryFn: async () => {
       const response = await fetchApi(`/api/projects/${projectId}/proofs`);
-      if (!response.ok) throw new Error('Failed to fetch proofs');
-      return response.json();
+      if (!response.ok) {
+        // Return empty array on any error - backend now returns empty arrays
+        return [];
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 2000, // Real-time updates
+    retry: false, // Don't retry - return empty array instead
   });
 
   // Convert proofs to notifications with real content

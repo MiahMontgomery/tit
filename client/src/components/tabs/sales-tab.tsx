@@ -65,10 +65,14 @@ export function SalesTab({ projectId }: SalesTabProps) {
     queryKey: ['sales-metrics', projectId],
     queryFn: async () => {
       const response = await fetchApi(`/api/projects/${projectId}/sales`);
-      if (!response.ok) throw new Error('Failed to fetch sales metrics');
+      if (!response.ok) {
+        // Return default sales data on any error
+        return { revenue: 0, transactions: 0, period: 'daily', metrics: [] };
+      }
       return response.json();
     },
     refetchInterval: 30000, // Refresh every 30 seconds
+    retry: false, // Don't retry - return default data instead
   });
 
   // Fetch revenue actions
@@ -76,10 +80,15 @@ export function SalesTab({ projectId }: SalesTabProps) {
     queryKey: ['revenue-actions', projectId],
     queryFn: async () => {
       const response = await fetchApi(`/api/projects/${projectId}/revenue-actions`);
-      if (!response.ok) throw new Error('Failed to fetch revenue actions');
-      return response.json();
+      if (!response.ok) {
+        // Return empty array on any error - backend now returns empty arrays
+        return [];
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 30000,
+    retry: false, // Don't retry - return empty array instead
   });
 
   const getStatusIcon = (status: string) => {
