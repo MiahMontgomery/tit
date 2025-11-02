@@ -287,6 +287,171 @@ app.get("/api/projects/:id/charter", async (req, res, next) => {
   }
 });
 
+// Stub endpoints for project-related data - return empty arrays to prevent frontend errors
+// These will be implemented fully as features are added
+
+// GET /api/projects/:id/messages
+app.get("/api/projects/:id/messages", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Return empty array - messages feature not implemented yet
+    return res.json([]);
+  } catch (err) {
+    console.error(`[GET /api/projects/:id/messages] Error:`, err);
+    return res.json([]); // Return empty array even on error
+  }
+});
+
+// GET /api/projects/:id/memory
+app.get("/api/projects/:id/memory", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Return empty array - memory feature not implemented yet
+    return res.json([]);
+  } catch (err) {
+    console.error(`[GET /api/projects/:id/memory] Error:`, err);
+    return res.json([]);
+  }
+});
+
+// GET /api/projects/:id/tasks
+app.get("/api/projects/:id/tasks", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Return empty array - tasks feature not implemented yet
+    return res.json([]);
+  } catch (err) {
+    console.error(`[GET /api/projects/:id/tasks] Error:`, err);
+    return res.json([]);
+  }
+});
+
+// POST /api/projects/:id/tasks
+app.post("/api/projects/:id/tasks", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Stub implementation - tasks feature not fully implemented yet
+    return res.status(201).json({ 
+      ok: true, 
+      id: `task-${Date.now()}`,
+      projectId,
+      content: req.body.content || '',
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error(`[POST /api/projects/:id/tasks] Error:`, err);
+    return res.status(500).json({ ok: false, error: 'Failed to create task' });
+  }
+});
+
+// GET /api/projects/:id/runs
+app.get("/api/projects/:id/runs", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Return empty array - runs feature not implemented yet
+    return res.json([]);
+  } catch (err) {
+    console.error(`[GET /api/projects/:id/runs] Error:`, err);
+    return res.json([]);
+  }
+});
+
+// GET /api/projects/:id/logs
+app.get("/api/projects/:id/logs", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Return empty array - logs feature not implemented yet
+    return res.json([]);
+  } catch (err) {
+    console.error(`[GET /api/projects/:id/logs] Error:`, err);
+    return res.json([]);
+  }
+});
+
+// GET /api/projects/:id/proofs
+app.get("/api/projects/:id/proofs", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Return empty array - proofs feature not implemented yet
+    return res.json([]);
+  } catch (err) {
+    console.error(`[GET /api/projects/:id/proofs] Error:`, err);
+    return res.json([]);
+  }
+});
+
+// GET /api/projects/:id/sales
+app.get("/api/projects/:id/sales", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Return empty sales data - sales feature not implemented yet
+    return res.json({
+      revenue: 0,
+      transactions: 0,
+      period: 'daily',
+      metrics: []
+    });
+  } catch (err) {
+    console.error(`[GET /api/projects/:id/sales] Error:`, err);
+    return res.json({ revenue: 0, transactions: 0, period: 'daily', metrics: [] });
+  }
+});
+
+// GET /api/projects/:id/revenue-actions
+app.get("/api/projects/:id/revenue-actions", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Return empty array - revenue actions feature not implemented yet
+    return res.json([]);
+  } catch (err) {
+    console.error(`[GET /api/projects/:id/revenue-actions] Error:`, err);
+    return res.json([]);
+  }
+});
+
+// GET /api/projects/:id/live-actions
+app.get("/api/projects/:id/live-actions", async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
+    }
+    // Return empty array - live actions feature not implemented yet
+    return res.json([]);
+  } catch (err) {
+    console.error(`[GET /api/projects/:id/live-actions] Error:`, err);
+    return res.json([]);
+  }
+});
+
 // Root endpoint
 app.get("/", (req, res) => {
   res.json({
