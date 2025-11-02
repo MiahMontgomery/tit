@@ -8,16 +8,16 @@ import { Progress } from './ui/progress';
 import { Calendar, DollarSign, Target, FileText, ArrowRight } from 'lucide-react';
 
 interface ProjectOverview {
-  id: string;
+  id: string | number;
   name: string;
-  description: string;
-  latestRunState: string;
-  budgetTokens: number;
-  budgetUsd: number;
-  spentTokens: number;
-  spentUsd: number;
-  featuresCount: number;
-  recentProofs: Array<{
+  description?: string | null;
+  latestRunState?: string;
+  budgetTokens?: number;
+  budgetUsd?: number;
+  spentTokens?: number;
+  spentUsd?: number;
+  featuresCount?: number;
+  recentProofs?: Array<{
     summary: string;
     createdAt: string;
   }>;
@@ -59,9 +59,9 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6" style={{ backgroundColor: '#050505', color: '#e0e0e0' }}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading projects...</div>
+          <div className="text-lg" style={{ color: '#e0e0e0' }}>Loading projects...</div>
         </div>
       </div>
     );
@@ -90,7 +90,7 @@ export default function Dashboard() {
     const explanation = errorExplanations[errorCode] || errorExplanations['ERR_UNKNOWN'];
     
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6" style={{ backgroundColor: '#050505', color: '#e0e0e0' }}>
         <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4 max-w-3xl mx-auto">
           <div className="text-2xl text-red-400 font-bold">Failed to Load Projects</div>
           
@@ -139,51 +139,62 @@ export default function Dashboard() {
 
   if (!projects || projects.length === 0) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6" style={{ backgroundColor: '#050505', color: '#e0e0e0' }}>
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-4">Titan Dashboard</h1>
-          <p className="text-gray-600 mb-8">No projects found. Create your first project to get started.</p>
-          <Button>Create Project</Button>
+          <h1 className="text-3xl font-bold mb-4" style={{ color: '#e0e0e0' }}>Titan Dashboard</h1>
+          <p className="mb-8" style={{ color: '#888888' }}>No projects found. Create your first project to get started.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="container mx-auto p-6" style={{ backgroundColor: '#050505', color: '#e0e0e0' }}>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>Titan Dashboard</h1>
-        <p style={{ color: 'var(--muted-foreground)' }}>Monitor and manage all your autonomous projects</p>
+        <h1 className="text-3xl font-bold mb-2" style={{ color: '#e0e0e0' }}>Titan Dashboard</h1>
+        <p style={{ color: '#888888' }}>Monitor and manage all your autonomous projects</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project: ProjectOverview) => {
-          const tokenUsagePercent = project.budgetTokens > 0 
-            ? (project.spentTokens / project.budgetTokens) * 100 
+        {projects.map((project: any) => {
+          // Safely extract values with defaults
+          const projectId = String(project.id);
+          const projectName = project.name || 'Untitled Project';
+          const projectDescription = project.description || 'No description';
+          const latestRunState = project.latestRunState || 'PENDING';
+          const budgetTokens = project.budgetTokens || 10000;
+          const budgetUsd = project.budgetUsd || 50.0;
+          const spentTokens = project.spentTokens || 0;
+          const spentUsd = project.spentUsd || 0.0;
+          const featuresCount = project.featuresCount || 0;
+          const recentProofs = project.recentProofs || [];
+
+          const tokenUsagePercent = budgetTokens > 0 
+            ? (spentTokens / budgetTokens) * 100 
             : 0;
-          const usdUsagePercent = project.budgetUsd > 0 
-            ? (project.spentUsd / project.budgetUsd) * 100 
+          const usdUsagePercent = budgetUsd > 0 
+            ? (spentUsd / budgetUsd) * 100 
             : 0;
 
           return (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
+            <Card key={projectId} className="hover:shadow-lg transition-shadow" style={{ backgroundColor: '#0f0f0f', borderColor: '#333333' }}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg mb-1">{project.name}</CardTitle>
+                    <CardTitle className="text-lg mb-1" style={{ color: '#e0e0e0' }}>{projectName}</CardTitle>
                     <CardDescription 
                       className="text-sm line-clamp-2 overflow-wrap-anywhere"
                       style={{ 
-                        color: 'var(--muted-foreground)',
+                        color: '#888888',
                         wordBreak: 'break-word',
                         overflowWrap: 'anywhere'
                       }}
                     >
-                      {project.description}
+                      {projectDescription}
                     </CardDescription>
                   </div>
-                  <Badge className={`ml-2 ${getStateColor(project.latestRunState)}`}>
-                    {project.latestRunState}
+                  <Badge className={`ml-2 ${getStateColor(latestRunState)}`}>
+                    {latestRunState}
                   </Badge>
                 </div>
               </CardHeader>
@@ -191,13 +202,13 @@ export default function Dashboard() {
               <CardContent className="space-y-4">
                 {/* Budget Usage */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-sm" style={{ color: '#e0e0e0' }}>
                     <span className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
                       Budget Usage
                     </span>
                     <span className="font-medium">
-                      {formatCurrency(project.spentUsd)} / {formatCurrency(project.budgetUsd)}
+                      {formatCurrency(spentUsd)} / {formatCurrency(budgetUsd)}
                     </span>
                   </div>
                   <Progress value={usdUsagePercent} className="h-2" />
@@ -205,31 +216,31 @@ export default function Dashboard() {
 
                 {/* Token Usage */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-sm" style={{ color: '#e0e0e0' }}>
                     <span className="flex items-center gap-1">
                       <Target className="h-4 w-4" />
                       Token Usage
                     </span>
                     <span className="font-medium">
-                      {project.spentTokens.toLocaleString()} / {project.budgetTokens.toLocaleString()}
+                      {spentTokens.toLocaleString()} / {budgetTokens.toLocaleString()}
                     </span>
                   </div>
                   <Progress value={tokenUsagePercent} className="h-2" />
                 </div>
 
                 {/* Features Count */}
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm" style={{ color: '#888888' }}>
                   <FileText className="h-4 w-4" />
-                  <span>{project.featuresCount} features</span>
+                  <span>{featuresCount} features</span>
                 </div>
 
                 {/* Recent Proofs */}
-                {project.recentProofs.length > 0 && (
+                {recentProofs.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-700">Recent Activity</h4>
+                    <h4 className="text-sm font-medium" style={{ color: '#e0e0e0' }}>Recent Activity</h4>
                     <div className="space-y-1">
-                      {project.recentProofs.map((proof, index) => (
-                        <div key={index} className="text-xs p-2 rounded" style={{ color: 'var(--muted-foreground)', backgroundColor: 'var(--muted)' }}>
+                      {recentProofs.map((proof: any, index: number) => (
+                        <div key={index} className="text-xs p-2 rounded" style={{ color: '#888888', backgroundColor: '#1a1a1a' }}>
                           <div className="font-medium">{proof.summary}</div>
                           <div className="flex items-center gap-1 mt-1">
                             <Calendar className="h-3 w-3" />
@@ -243,8 +254,9 @@ export default function Dashboard() {
 
                 {/* Action Button */}
                 <Button 
-                  className="w-full mt-4" 
-                  onClick={() => window.location.href = `/projects/${project.id}`}
+                  className="w-full mt-4"
+                  onClick={() => window.location.href = `/projects/${projectId}`}
+                  style={{ backgroundColor: '#40e0d0', color: '#000000' }}
                 >
                   Open Project
                   <ArrowRight className="h-4 w-4 ml-2" />
