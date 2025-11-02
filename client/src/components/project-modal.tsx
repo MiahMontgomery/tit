@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Check, X } from 'lucide-react';
+import { fetchApi } from '@/lib/queryClient';
 import './project-modal.css';
 
 interface ProjectModalProps {
@@ -12,6 +14,7 @@ interface ProjectModalProps {
 }
 
 export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
+  const [, setLocation] = useLocation();
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [elevenLabsApiKey, setElevenLabsApiKey] = useState("");
@@ -31,8 +34,7 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
     setIsLoading(true);
     try {
       // Create project directly - backend will generate features and hierarchy
-      const apiBase = import.meta.env.VITE_API_BASE || '';
-      const response = await fetch(`${apiBase}/api/projects`, {
+      const response = await fetchApi(`/api/projects`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,15 +48,24 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create project');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Failed to create project');
       }
 
-      const project = await response.json();
-      console.log('Project created:', project);
+      const data = await response.json();
+      console.log('Project created:', data);
       
-      // Close modal and refresh projects list
+      // Extract project from response (handles both { ok: true, project } and { project } formats)
+      const project = data.project || data.data || data;
+      const projectId = project.id;
+      
+      if (!projectId) {
+        throw new Error('Project created but no ID returned');
+      }
+      
+      // Close modal and navigate to the project page
       handleClose();
-      window.location.reload(); // Simple refresh for now
+      setLocation(`/projects/${projectId}`);
     } catch (error) {
       console.error('Error creating project:', error);
       alert('Failed to create project. Please try again.');

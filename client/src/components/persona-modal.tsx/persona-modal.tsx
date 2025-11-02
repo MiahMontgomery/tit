@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { X } from "lucide-react";
+import { fetchApi } from '@/lib/queryClient';
 
 interface PersonaModalProps {
   /** Whether the modal is currently visible */
@@ -39,8 +40,7 @@ export default function PersonaModal({ isOpen, onClose, onCreated }: PersonaModa
     if (!name.trim() || !role.trim()) return;
     setIsLoading(true);
     try {
-      const apiBase = import.meta.env.VITE_API_BASE || '';
-      const response = await fetch(`${apiBase}/api/personas`, {
+      const response = await fetchApi(`/api/personas`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

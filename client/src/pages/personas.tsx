@@ -4,6 +4,7 @@ import TitanLogo from '@/components/titan-logo';
 import { Button } from '@/components/ui/button';
 import PersonaCard from '@/components/persona-card';
 import PersonaModal from '@/components/persona-modal';
+import { fetchApi } from '@/lib/queryClient';
 
 interface Persona {
   id: string;
@@ -23,8 +24,7 @@ function PersonasPage() {
   useEffect(() => {
     async function load() {
       try {
-        const apiBase = import.meta.env.VITE_API_BASE || '';
-        const res = await fetch(`${apiBase}/api/personas`);
+        const res = await fetchApi(`/api/personas`);
         if (res.ok) {
           const json = await res.json();
           const list = json.data || [];

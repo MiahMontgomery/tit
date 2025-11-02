@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Clock, GitCommit, Code, Database, Settings } from "lucide-react";
 import type { Log } from "@shared/schema";
+import { fetchApi } from '@/lib/queryClient';
 
 interface LogsTabProps {
   projectId: string;
@@ -10,7 +11,7 @@ export function LogsTab({ projectId }: LogsTabProps) {
   const { data: logs = [], isLoading, error } = useQuery<Log[]>({
     queryKey: ['/api/projects', projectId, 'logs'],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/logs`);
+      const response = await fetchApi(`/api/projects/${projectId}/logs`);
       if (!response.ok) {
         if (response.status === 404) {
           return []; // Return empty array for missing project

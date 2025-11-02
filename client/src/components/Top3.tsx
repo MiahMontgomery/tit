@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { fetchApi, getApiUrl } from '@/lib/queryClient';
 
 interface Top3Task {
   id: string;
@@ -21,7 +22,7 @@ export default function Top3({ projectId, pat }: Top3Props) {
 
   const fetchTop3 = async () => {
     try {
-      const response = await fetch(`/api/projects/${projectId}/top3`, {
+      const response = await fetchApi(`/api/projects/${projectId}/top3`, {
         headers: {
           'Authorization': `Bearer ${pat}`,
           'Content-Type': 'application/json'
@@ -47,7 +48,7 @@ export default function Top3({ projectId, pat }: Top3Props) {
   }, [projectId, pat]);
 
   useEffect(() => {
-    const eventSource = new EventSource(`/api/events?projectId=${projectId}&pat=${pat}`);
+    const eventSource = new EventSource(getApiUrl(`/api/events?projectId=${projectId}&pat=${pat}`));
 
     eventSource.onmessage = (event) => {
       try {

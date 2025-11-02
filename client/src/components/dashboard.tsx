@@ -68,10 +68,70 @@ export default function Dashboard() {
   }
 
   if (error) {
+    const errorData = (error as any)?.response?.data || (error as any)?.data || {};
+    const errorCode = errorData.errorCode || 'ERR_UNKNOWN';
+    const errorMessage = errorData.message || errorData.error || (error instanceof Error ? error.message : 'Unknown error');
+    
+    // Error code explanations
+    const errorExplanations: Record<string, string> = {
+      'ERR_DB_CONNECTION': 'Cannot connect to database. Check DATABASE_URL environment variable and ensure database is running.',
+      'ERR_DB_CLIENT_MISSING': 'Database client not initialized. Check server configuration.',
+      'ERR_DB_CONSTRAINT': 'Database constraint violation. Data may conflict with existing records.',
+      'ERR_DB_NOT_FOUND': 'Requested data not found in database.',
+      'ERR_DB_DUPLICATE': 'Duplicate entry detected. A record with this data already exists.',
+      'ERR_DB_UNKNOWN': 'Unknown database error occurred. Check database logs for details.',
+      'ERR_VALIDATION': 'Request validation failed. Check that all required fields are provided correctly.',
+      'ERR_SERVER_INTERNAL': 'Internal server error. Check server logs for details.',
+      'ERR_NETWORK': 'Network request failed. Check your internet connection and API base URL configuration.',
+      'ERR_API_RESPONSE': 'Server returned an error response. Check server logs for details.',
+      'ERR_UNKNOWN': 'An unknown error occurred. Check console for details.'
+    };
+    
+    const explanation = errorExplanations[errorCode] || errorExplanations['ERR_UNKNOWN'];
+    
     return (
       <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg text-red-600">Failed to load projects</div>
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4 max-w-3xl mx-auto">
+          <div className="text-2xl text-red-400 font-bold">Failed to Load Projects</div>
+          
+          {/* Error Code Display */}
+          <div className="w-full p-4 rounded-lg border" style={{ backgroundColor: '#1a1a1a', borderColor: '#dc2626' }}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="px-3 py-1 rounded font-mono text-sm font-bold" style={{ backgroundColor: '#dc2626', color: '#ffffff' }}>
+                {errorCode}
+              </div>
+              <div className="text-sm text-red-300 font-medium">
+                {errorMessage}
+              </div>
+            </div>
+            <div className="text-xs text-gray-400 mt-2 border-t pt-2" style={{ borderColor: '#333333' }}>
+              <strong>Explanation:</strong> {explanation}
+            </div>
+          </div>
+          
+          {/* Additional Details in Development */}
+          {process.env.NODE_ENV === 'development' && errorData.details && (
+            <div className="w-full p-4 rounded-lg border text-xs font-mono text-left overflow-auto max-h-48" 
+                 style={{ backgroundColor: '#0a0a0a', borderColor: '#333333', color: '#888888' }}>
+              <div className="font-bold mb-2 text-red-400">Stack Trace:</div>
+              <pre className="whitespace-pre-wrap">{errorData.details}</pre>
+            </div>
+          )}
+          
+          {/* Additional Context */}
+          {errorData.prismaCode && (
+            <div className="text-xs text-gray-500">
+              Prisma Error Code: <span className="font-mono">{errorData.prismaCode}</span>
+            </div>
+          )}
+          
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 rounded border font-medium transition-colors hover:opacity-80"
+            style={{ borderColor: '#40e0d0', color: '#40e0d0', backgroundColor: 'transparent' }}
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

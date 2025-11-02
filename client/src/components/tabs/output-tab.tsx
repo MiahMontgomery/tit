@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
+import { fetchApi } from '@/lib/queryClient';
 import { 
   CheckCircle, 
   XCircle, 
@@ -138,7 +139,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   const { data: proofs = [], isLoading } = useQuery({
     queryKey: ['proofs', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/proofs`);
+      const response = await fetchApi(`/api/projects/${projectId}/proofs`);
       if (!response.ok) throw new Error('Failed to fetch proofs');
       return response.json();
     },
@@ -155,7 +156,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
           // Fetch real content for text-based proofs
           if (proof.type === 'diff' || proof.type === 'log') {
             try {
-              const response = await fetch(`/api/proofs/${proof.id}/content`);
+              const response = await fetchApi(`/api/proofs/${proof.id}/content`);
               if (response.ok) {
                 proofContent = await response.text();
               }
@@ -223,7 +224,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   // Approve output item
   const approveMutation = useMutation({
     mutationFn: async (itemId: string) => {
-      const response = await fetch(`/api/projects/${projectId}/output/${itemId}/approve`, {
+      const response = await fetchApi(`/api/projects/${projectId}/output/${itemId}/approve`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to approve item');
@@ -237,7 +238,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   // Reject output item
   const rejectMutation = useMutation({
     mutationFn: async (itemId: string) => {
-      const response = await fetch(`/api/projects/${projectId}/output/${itemId}/reject`, {
+      const response = await fetchApi(`/api/projects/${projectId}/output/${itemId}/reject`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to reject item');
@@ -251,7 +252,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   // Take screenshot
   const takeScreenshotMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/screenshot`, {
+      const response = await fetchApi(`/api/projects/${projectId}/screenshot`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to take screenshot');
@@ -265,7 +266,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   // Live Browser mutations
   const startLiveSessionMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/live-browser/start`, {
+      const response = await fetchApi(`/api/projects/${projectId}/live-browser/start`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to start live session');
@@ -287,7 +288,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   const navigateMutation = useMutation({
     mutationFn: async (url: string) => {
       if (!liveSession) throw new Error('No live session');
-      const response = await fetch(`/api/projects/${projectId}/live-browser/${liveSession.id}/navigate`, {
+      const response = await fetchApi(`/api/projects/${projectId}/live-browser/${liveSession.id}/navigate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -300,7 +301,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   const clickMutation = useMutation({
     mutationFn: async (selector: string) => {
       if (!liveSession) throw new Error('No live session');
-      const response = await fetch(`/api/projects/${projectId}/live-browser/${liveSession.id}/click`, {
+      const response = await fetchApi(`/api/projects/${projectId}/live-browser/${liveSession.id}/click`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ selector }),
@@ -313,7 +314,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   const typeMutation = useMutation({
     mutationFn: async ({ selector, text }: { selector: string; text: string }) => {
       if (!liveSession) throw new Error('No live session');
-      const response = await fetch(`/api/projects/${projectId}/live-browser/${liveSession.id}/type`, {
+      const response = await fetchApi(`/api/projects/${projectId}/live-browser/${liveSession.id}/type`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ selector, text }),
@@ -326,7 +327,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   const scrollMutation = useMutation({
     mutationFn: async (distance: number) => {
       if (!liveSession) throw new Error('No live session');
-      const response = await fetch(`/api/projects/${projectId}/live-browser/${liveSession.id}/scroll`, {
+      const response = await fetchApi(`/api/projects/${projectId}/live-browser/${liveSession.id}/scroll`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ distance }),
@@ -339,7 +340,7 @@ export function OutputTab({ projectId }: OutputTabProps) {
   const closeSessionMutation = useMutation({
     mutationFn: async () => {
       if (!liveSession) throw new Error('No live session');
-      const response = await fetch(`/api/projects/${projectId}/live-browser/${liveSession.id}`, {
+      const response = await fetchApi(`/api/projects/${projectId}/live-browser/${liveSession.id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to close session');

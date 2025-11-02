@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { fetchApi } from '@/lib/queryClient';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -63,7 +64,7 @@ export function SalesTab({ projectId }: SalesTabProps) {
   const { data: salesMetrics, isLoading } = useQuery({
     queryKey: ['sales-metrics', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/sales`);
+      const response = await fetchApi(`/api/projects/${projectId}/sales`);
       if (!response.ok) throw new Error('Failed to fetch sales metrics');
       return response.json();
     },
@@ -74,7 +75,7 @@ export function SalesTab({ projectId }: SalesTabProps) {
   const { data: revenueActions = [] } = useQuery({
     queryKey: ['revenue-actions', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/revenue-actions`);
+      const response = await fetchApi(`/api/projects/${projectId}/revenue-actions`);
       if (!response.ok) throw new Error('Failed to fetch revenue actions');
       return response.json();
     },

@@ -23,7 +23,12 @@ app.use(logRequest());
 
 // CORS configuration
 const allowedOrigins = process.env.NODE_ENV === "production" 
-  ? [process.env.FRONTEND_URL || "https://titan-app.vercel.app"]
+  ? [
+      process.env.FRONTEND_URL || "https://titan-app.vercel.app",
+      "https://morteliv.com",
+      "https://www.morteliv.com",
+      "https://tit-heaw.onrender.com"
+    ]
   : true;
 
 app.use(cors({

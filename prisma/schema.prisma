@@ -20,7 +20,48 @@ model Project {
   id          Int      @id @default(autoincrement())
   name        String
   description String?
+  title       String?
+  intent      String?
+  context     Json?
+  modeSelection String?
   createdAt   DateTime @default(now())
+  charter     ProjectCharter?
+}
+
+model ProjectCharter {
+  id                 String   @id @default(cuid())
+  projectId          Int      @unique
+  narrative          String   @db.Text
+  prominentFeatures  Json
+  modes              Json?
+  milestones         Json
+  risks              Json?
+  dependencies       Json?
+  instrumentation    Json?
+  acceptanceCriteria Json
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ReiterationDraft {
+  id                 String   @id @default(cuid())
+  version            Int      @default(1)
+  title              String
+  intent             String?
+  context            Json?
+  narrative          String   @db.Text
+  prominentFeatures  Json
+  modes              Json?
+  milestones         Json
+  risks              Json?
+  dependencies       Json?
+  instrumentation    Json?
+  acceptanceCriteria Json
+  userEdits          String?  @db.Text
+  createdAt          DateTime @default(now())
+
+  @@index([title, version])
 }
 
 // Minimal Job model without FK to Project to avoid cross-version conflicts

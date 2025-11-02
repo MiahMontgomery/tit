@@ -2,7 +2,7 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
-function getApiUrl(path: string): string {
+export function getApiUrl(path: string): string {
   // If path already includes the base URL, use it as-is
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
@@ -13,8 +13,34 @@ function getApiUrl(path: string): string {
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    // Read response as text first (can only read once)
+    const text = await res.text() || res.statusText;
+    
+    // Try to parse as JSON to preserve error codes
+    let errorData: any = null;
+    try {
+      errorData = JSON.parse(text);
+    } catch {
+      // Not JSON, use text
+    }
+    
+    if (errorData && errorData.errorCode) {
+      // Structured error response with error code
+      const error: any = new Error(errorData.message || errorData.error || res.statusText);
+      error.response = { status: res.status, data: errorData };
+      error.data = errorData;
+      throw error;
+    } else {
+      // Plain text or non-structured error
+      const error: any = new Error(`${res.status}: ${text}`);
+      error.response = { status: res.status };
+      error.data = {
+        errorCode: `ERR_HTTP_${res.status}`,
+        message: text || res.statusText,
+        status: res.status
+      };
+      throw error;
+    }
   }
 }
 
@@ -48,8 +74,75 @@ export async function createProject(data: { name: string; description: string; f
 }
 
 export async function getProjectsOverview(pat?: string) {
-  const response = await apiRequest("GET", "/api/projects/overview", undefined, pat);
-  return response.json();
+  try {
+    const response = await apiRequest("GET", "/api/projects", undefined, pat);
+    const data = await response.json();
+    
+    // If response indicates error, preserve error code structure
+    if (data.ok === false) {
+      const error: any = new Error(data.message || data.error || 'Failed to fetch projects');
+      error.data = {
+        errorCode: data.errorCode || 'ERR_UNKNOWN',
+        message: data.message || data.error,
+        details: data.details,
+        prismaCode: data.prismaCode,
+        meta: data.meta
+      };
+      throw error;
+    }
+    
+    // Handle different response formats: { ok: true, projects } or { success: true, data: [...] } or just array
+    if (data.projects && Array.isArray(data.projects)) {
+      return data.projects;
+    }
+    if (data.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    console.warn('Unexpected projects response format:', data);
+    return [];
+  } catch (error: any) {
+    console.error('Error fetching projects:', error);
+    
+    // Preserve error structure from API
+    if (error.data) {
+      throw error;
+    }
+    
+    // If it's a network error, wrap it with error code
+    if (error.message && error.message.includes('fetch')) {
+      const networkError: any = new Error('Network request failed');
+      networkError.data = {
+        errorCode: 'ERR_NETWORK',
+        message: error.message,
+        details: 'Could not reach the server. Check your internet connection and API base URL.'
+      };
+      throw networkError;
+    }
+    
+    // If response has error data (from throwIfResNotOk)
+    if (error.message) {
+      const apiError: any = new Error(error.message);
+      apiError.data = {
+        errorCode: 'ERR_API_RESPONSE',
+        message: error.message,
+        details: 'Server returned an error response'
+      };
+      throw apiError;
+    }
+    
+    // Fallback
+    const unknownError: any = new Error('Unknown error occurred');
+    unknownError.data = {
+      errorCode: 'ERR_UNKNOWN',
+      message: 'Failed to fetch projects',
+      details: 'An unexpected error occurred'
+    };
+    throw unknownError;
+  }
 }
 
 export async function getProjectHierarchy(projectId: string, pat?: string) {
@@ -104,3 +197,12 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Helper function for direct fetch calls with API base URL
+export async function fetchApi(url: string, options?: RequestInit): Promise<Response> {
+  const apiUrl = getApiUrl(url);
+  return fetch(apiUrl, {
+    ...options,
+    credentials: "include",
+  });
+}

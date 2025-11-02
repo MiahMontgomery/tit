@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import TitanLogo from "@/components/titan-logo";
-import { ProjectModal } from "@/components/project-modal";
+import { ReiterationModal } from "@/components/reiteration-modal";
 import { ProjectCard } from "@/components/project-card";
 import { ExpandedProject } from "@/components/expanded-project";
 import { Button } from "@/components/ui/button";
-import { Plus, Users } from "lucide-react";
-import { Link } from "wouter";
+import { Plus } from "lucide-react";
 import type { Project } from "@shared/schema";
 import Dashboard from "@/components/dashboard";
 
@@ -45,21 +44,6 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold" style={{ color: '#40e0d0' }}>TITAN</h1>
         </div>
         <div className="flex items-center gap-3">
-          {/* Button to navigate to the personas page */}
-          <Link href="/personas" className="no-underline">
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 transition-all duration-200"
-              style={{
-                borderColor: '#40e0d0',
-                color: '#40e0d0',
-                backgroundColor: 'transparent'
-              }}
-            >
-              <Users className="w-4 h-4" />
-              Personas
-            </Button>
-          </Link>
           {/* Button to create a project */}
           <Button
             data-testid="button-add-project"
@@ -88,7 +72,7 @@ export default function DashboardPage() {
       </main>
 
       {/* Project Creation Modal */}
-      <ProjectModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <ReiterationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }

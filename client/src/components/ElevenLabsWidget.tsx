@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fetchApi } from '@/lib/queryClient';
 import { 
   Bot,
   AlertCircle,
@@ -21,7 +22,7 @@ export function ElevenLabsWidget({ projectId }: ElevenLabsWidgetProps) {
   const { data: elevenLabsData, isLoading: isLoadingKey } = useQuery({
     queryKey: ['elevenlabs-key', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/elevenlabs-key`);
+      const response = await fetchApi(`/api/projects/${projectId}/elevenlabs-key`);
       if (!response.ok) {
         throw new Error('Failed to fetch ElevenLabs key');
       }

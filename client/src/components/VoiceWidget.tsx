@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fetchApi } from '@/lib/queryClient';
 import { 
   Mic, 
   MicOff, 
@@ -40,7 +41,7 @@ export function VoiceWidget({ projectId, onVoiceMessage, onVoiceResponse }: Voic
   const { data: elevenLabsData, isLoading: isLoadingKey } = useQuery({
     queryKey: ['elevenlabs-key', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/elevenlabs-key`);
+      const response = await fetchApi(`/api/projects/${projectId}/elevenlabs-key`);
       if (!response.ok) {
         throw new Error('Failed to fetch ElevenLabs key');
       }
@@ -142,7 +143,7 @@ export function VoiceWidget({ projectId, onVoiceMessage, onVoiceResponse }: Voic
 
     setIsGeneratingVoice(true);
     try {
-      const response = await fetch(`/api/input/${projectId}/voice`, {
+      const response = await fetchApi(`/api/input/${projectId}/voice`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

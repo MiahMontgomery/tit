@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getProjectHierarchy } from '@/lib/queryClient';
+import { getProjectHierarchy, getApiUrl } from '@/lib/queryClient';
 import { ChevronDown, ChevronRight, Circle, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
 
 interface Goal {
@@ -90,7 +90,7 @@ export default function ProgressTree({ projectId, pat }: ProgressTreeProps) {
   useEffect(() => {
     if (!projectId) return;
 
-    const eventSource = new EventSource(`/api/events?projectId=${projectId}&pat=${pat || ''}`);
+    const eventSource = new EventSource(getApiUrl(`/api/events?projectId=${projectId}&pat=${pat || ''}`));
     
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);

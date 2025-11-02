@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ElevenLabsWidget } from '@/components/ElevenLabsWidget';
 import NestedMemory from '@/components/NestedMemory';
 import Top3 from '@/components/Top3';
+import { fetchApi } from '@/lib/queryClient';
 import { 
   Send, 
   Camera, 
@@ -77,11 +78,28 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
+  // Fetch project charter
+  const { data: charter } = useQuery({
+    queryKey: ['charter', projectId],
+    queryFn: async () => {
+      const response = await fetchApi(`/api/projects/${projectId}/charter`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null; // No charter for this project
+        }
+        throw new Error('Failed to fetch charter');
+      }
+      const data = await response.json();
+      return data.charter;
+    },
+    retry: false,
+  });
+
   // Fetch messages for the project
   const { data: projectMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
     queryKey: ['messages', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/messages?limit=50`);
+      const response = await fetchApi(`/api/projects/${projectId}/messages?limit=50`);
       if (!response.ok) {
         if (response.status === 404) {
           return []; // Return empty array for missing project
@@ -98,7 +116,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   const { data: projectMemories = [], isLoading: memoriesLoading, error: memoriesError } = useQuery({
     queryKey: ['memories', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/memory?limit=20`);
+      const response = await fetchApi(`/api/projects/${projectId}/memory?limit=20`);
       if (!response.ok) {
         if (response.status === 404) {
           return []; // Return empty array for missing project
@@ -114,7 +132,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   // Send task mutation
   const sendTaskMutation = useMutation({
     mutationFn: async (content: string) => {
-      const response = await fetch(`/api/projects/${projectId}/tasks`, {
+      const response = await fetchApi(`/api/projects/${projectId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
@@ -144,7 +162,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   // Take screenshot mutation
   const takeScreenshotMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/screenshot`, {
+      const response = await fetchApi(`/api/projects/${projectId}/screenshot`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to take screenshot');
@@ -171,7 +189,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   // Rollback mutation
   const rollbackMutation = useMutation({
     mutationFn: async (rollbackId: string) => {
-      const response = await fetch(`/api/projects/${projectId}/rollback/${rollbackId}`, {
+      const response = await fetchApi(`/api/projects/${projectId}/rollback/${rollbackId}`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to rollback');
@@ -191,7 +209,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   const { data: liveActionsData = [] } = useQuery({
     queryKey: ['live-actions', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/live-actions`);
+      const response = await fetchApi(`/api/projects/${projectId}/live-actions`);
       if (!response.ok) throw new Error('Failed to fetch live actions');
       return response.json();
     },
@@ -202,7 +220,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/tasks`);
+      const response = await fetchApi(`/api/projects/${projectId}/tasks`);
       if (!response.ok) throw new Error('Failed to fetch tasks');
       return response.json();
     },
@@ -213,7 +231,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   const { data: runs = [] } = useQuery({
     queryKey: ['runs', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/runs`);
+      const response = await fetchApi(`/api/projects/${projectId}/runs`);
       if (!response.ok) throw new Error('Failed to fetch runs');
       return response.json();
     },
@@ -224,7 +242,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   const { data: memories = [] } = useQuery({
     queryKey: ['memories', projectId],
     queryFn: async () => {
-      const response = await fetch(`/api/projects/${projectId}/memory`);
+      const response = await fetchApi(`/api/projects/${projectId}/memory`);
       if (!response.ok) throw new Error('Failed to fetch memories');
       return response.json();
     },
@@ -581,6 +599,37 @@ export function InputTab({ projectId, pat }: InputTabProps) {
     <div className="flex h-full" style={{ backgroundColor: '#050505' }}>
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
+        {/* Project Charter Display */}
+        {charter && (
+          <div className="border-b p-4" style={{ backgroundColor: '#0a0a0a', borderColor: '#333333' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="h-5 w-5" style={{ color: '#40e0d0' }} />
+              <h3 className="text-lg font-bold" style={{ color: '#e0e0e0' }}>Project Charter</h3>
+            </div>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="p-3 rounded border" style={{ backgroundColor: '#050505', borderColor: '#333333' }}>
+                <h4 className="text-sm font-medium mb-2" style={{ color: '#e0e0e0' }}>Narrative</h4>
+                <p className="text-sm whitespace-pre-wrap" style={{ color: '#c0c0c0' }}>
+                  {charter.narrative}
+                </p>
+              </div>
+              {charter.prominentFeatures && Array.isArray(charter.prominentFeatures) && charter.prominentFeatures.length > 0 && (
+                <div className="p-3 rounded border" style={{ backgroundColor: '#050505', borderColor: '#333333' }}>
+                  <h4 className="text-sm font-medium mb-2" style={{ color: '#e0e0e0' }}>Key Features</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {charter.prominentFeatures.map((feature: any, idx: number) => (
+                      <li key={idx} className="text-sm" style={{ color: '#c0c0c0' }}>
+                        <span className="font-medium">{feature.name || feature.title}</span>
+                        {feature.description && `: ${feature.description}`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
         {/* Live Actions Bar */}
         <div className="border-b p-3" style={{ backgroundColor: '#0f0f0f', borderColor: '#333333' }}>
           <div className="flex items-center gap-4 overflow-x-auto">

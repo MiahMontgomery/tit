@@ -128,6 +128,156 @@ Provide a concise description that explains what needs to be done.`;
     return response.content;
   }
 
+  async generateReiterationDraft(params: {
+    title: string;
+    intent?: string;
+    context?: any;
+    previousVersion?: any;
+    userEdits?: string;
+  }): Promise<{
+    narrative: string;
+    prominentFeatures: any[];
+    modes: any[];
+    milestones: any[];
+    risks: any[];
+    dependencies: any[];
+    instrumentation: any[];
+    acceptanceCriteria: any[];
+  }> {
+    const { title, intent, context, previousVersion, userEdits } = params;
+    
+    const contextText = context?.text || (typeof context === 'string' ? context : JSON.stringify(context));
+    const hasContext = !!(intent || contextText);
+    
+    let prompt = `You are an expert project architect and technical advisor. Your task is to create a comprehensive, intelligent project plan that reasons about the project requirements and provides actionable recommendations.
+
+PROJECT REQUEST:
+Title: ${title}
+${intent ? `Intent: ${intent}` : ''}
+${contextText ? `Context/Details:\n${contextText}` : ''}
+
+${previousVersion ? `PREVIOUS DRAFT (v${previousVersion.version}):\n${JSON.stringify(previousVersion, null, 2)}\n\nThe user reviewed this and wants changes.` : ''}
+${userEdits ? `USER FEEDBACK/REQUESTS:\n"${userEdits}"\n\nIncorporate this feedback into a new, improved draft.` : ''}
+
+${!hasContext && !previousVersion ? `NOTE: The user provided minimal information. Be intelligent: analyze what type of project this likely is based on the title, make reasonable assumptions, and ASK for more context where needed. Provide multiple approaches (smartest, most cost-effective, fastest, etc.) when applicable.` : ''}
+
+YOUR TASK:
+1. **Intelligently analyze** what this project actually needs based on the title and any provided context
+2. **Reason about constraints**: If it's a VR game, mention hardware needs and suggest cloud alternatives. If it's a mobile app, discuss platform choices. If it's a physical product, discuss manufacturing.
+3. **Provide multiple approaches** when relevant:
+   - Smartest way (most scalable, modern tech)
+   - Best way (optimal balance)
+   - Cheapest way (budget-friendly)
+   - Fastest way (rapid deployment)
+4. **Ask clarifying questions** if critical information is missing
+5. **Recommend technology stack** and architecture based on project type
+6. **Identify risks** specific to this project type
+7. **Suggest dependencies** (APIs, services, tools, hardware)
+8. **Design milestones** that make sense for this specific project
+
+RETURN STRICT JSON with this exact structure:
+{
+  "narrative": "A DETAILED 8-15 paragraph narrative that: (a) analyzes what this project truly needs, (b) discusses different implementation approaches (smartest/best/cheapest) when relevant, (c) identifies constraints or requirements (hardware, platforms, etc.), (d) recommends technology stack and architecture, (e) explains why these choices are optimal, (f) addresses any user feedback, (g) asks clarifying questions if context is insufficient. Write in a comprehensive, intelligent, reasoning style. No generic text.",
+  "prominentFeatures": [
+    {
+      "name": "Feature name",
+      "description": "Detailed description of what this feature does and why it's important",
+      "priority": "high|medium|low",
+      "rationale": "Why this feature is needed for this specific project type"
+    }
+  ],
+  "modes": [
+    {
+      "type": "development|deployment|maintenance|monitoring|cloud|hybrid",
+      "description": "Detailed description of this execution mode",
+      "selected": true|false,
+      "rationale": "Why this mode is recommended"
+    }
+  ],
+  "milestones": [
+    {
+      "title": "Specific milestone title",
+      "description": "Detailed description of what happens in this milestone and why it matters",
+      "acceptanceCriteria": ["Specific, measurable criterion 1", "Criterion 2"],
+      "estimatedCompletion": "Realistic timeline",
+      "dependencies": ["What must be completed first"]
+    }
+  ],
+  "risks": [
+    {
+      "risk": "Specific risk relevant to this project type",
+      "mitigation": "Detailed mitigation strategy",
+      "severity": "high|medium|low",
+      "probability": "likely|possible|unlikely"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependency": "Specific dependency (API, service, tool, hardware, etc.)",
+      "type": "external|internal|resource|hardware|software|service",
+      "status": "pending|resolved|optional",
+      "cost": "estimated cost if applicable",
+      "alternatives": ["Alternative options if this isn't available"]
+    }
+  ],
+  "instrumentation": [
+    {
+      "metric": "Specific metric to track",
+      "method": "How to measure this",
+      "frequency": "How often to track",
+      "tools": "Tools or services to use"
+    }
+  ],
+  "acceptanceCriteria": [
+    {
+      "criterion": "Specific, measurable acceptance criterion",
+      "type": "functional|non-functional|performance|security|usability",
+      "priority": "must-have|should-have|nice-to-have"
+    }
+  ]
+}
+
+CRITICAL REQUIREMENTS:
+- The narrative MUST be 8-15 paragraphs minimum - comprehensive and detailed
+- Show intelligent reasoning about project type and requirements
+- Provide multiple approaches (smartest/best/cheapest) when relevant
+- Mention constraints (hardware, platforms, etc.) specific to project type
+- Recommend specific technologies and explain why
+- If context is minimal, ask intelligent clarifying questions in the narrative
+- All content must be project-specific, not generic
+- Prominent features should be listed AFTER the narrative in point form style within the JSON structure
+- Be conversational but professional - like a senior architect explaining the plan`;
+
+    const response = await this.generateText(prompt, "openai/gpt-4o-mini", 8000);
+    
+    try {
+      const parsed = JSON.parse(response.content);
+      return {
+        narrative: parsed.narrative || "Project plan pending review.",
+        prominentFeatures: Array.isArray(parsed.prominentFeatures) ? parsed.prominentFeatures : [],
+        modes: Array.isArray(parsed.modes) ? parsed.modes : [],
+        milestones: Array.isArray(parsed.milestones) ? parsed.milestones : [],
+        risks: Array.isArray(parsed.risks) ? parsed.risks : [],
+        dependencies: Array.isArray(parsed.dependencies) ? parsed.dependencies : [],
+        instrumentation: Array.isArray(parsed.instrumentation) ? parsed.instrumentation : [],
+        acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria) ? parsed.acceptanceCriteria : []
+      };
+    } catch (error) {
+      console.error("Failed to parse reiteration draft:", error);
+      // Fallback structure
+      return {
+        narrative: `Project: ${title}${intent ? `\n\nIntent: ${intent}` : ''}\n\nThis project requires careful planning and execution.`,
+        prominentFeatures: [{ name: "Core Functionality", description: "Main features", priority: "high" }],
+        modes: [{ type: "development", description: "Active development mode", selected: true }],
+        milestones: [{ title: "Initial Setup", description: "Project initialization", acceptanceCriteria: [], estimatedCompletion: "1 week" }],
+        risks: [{ risk: "Scope creep", mitigation: "Regular reviews", severity: "medium" }],
+        dependencies: [],
+        instrumentation: [],
+        acceptanceCriteria: [{ criterion: "Project meets requirements", type: "functional" }]
+      };
+    }
+  }
+
   async llmPlanJson(prompt: string): Promise<any> {
     if (!process.env.OPENROUTER_API_KEY) {
       // Return mock plan for testing
