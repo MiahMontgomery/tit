@@ -82,12 +82,35 @@ router.post("/", async (req, res, next) => {
 
     // Generate draft using LLM
     console.log(`[POST /api/projects/reiterate] Generating draft v${nextVersion} for "${parsed.title}"`);
-    const draft = await llmClient.generateReiterationDraft({
-      title: parsed.title,
-      context: parsed.context,
-      previousVersion,
-      userEdits: parsed.userEdits,
-    });
+    let draft;
+    try {
+      draft = await llmClient.generateReiterationDraft({
+        title: parsed.title,
+        context: parsed.context,
+        previousVersion,
+        userEdits: parsed.userEdits,
+      });
+    } catch (llmError: any) {
+      console.error(`[POST /api/projects/reiterate] LLM generation error:`, llmError);
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to generate project draft',
+        errorCode: 'ERR_LLM_GENERATION',
+        message: llmError?.message || 'LLM service error',
+        details: process.env.NODE_ENV === 'development' ? llmError?.stack : undefined
+      });
+    }
+    
+    // Validate draft structure
+    if (!draft || !draft.narrative || !Array.isArray(draft.prominentFeatures)) {
+      console.error(`[POST /api/projects/reiterate] Invalid draft structure:`, draft);
+      return res.status(500).json({
+        ok: false,
+        error: 'Invalid draft structure returned from LLM',
+        errorCode: 'ERR_LLM_INVALID_RESPONSE',
+        message: 'The LLM returned an invalid draft structure'
+      });
+    }
 
     // Try to save draft to database, but don't fail if table doesn't exist yet
     let savedDraft = null;
