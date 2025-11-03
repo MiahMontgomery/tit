@@ -78,23 +78,50 @@ app.post("/api/projects", async (req, res, next) => {
       throw validationError;
     }
     
-    // Create project
+    // Create project and charter in a single transaction
     let project;
     try {
-      // Only include fields that exist in the current schema
-      // Check if schema has new fields by trying a minimal create first
-      const projectData: any = {
-        name: parsed.name || 'Untitled Project',
-      };
-      
-      // Only add description if it's provided
-      if (parsed.description) {
-        projectData.description = parsed.description;
+      if (parsed.charter) {
+        // Transactional creation: Project + Charter together
+        project = await prisma.$transaction(async (tx) => {
+          // Create project first
+          const newProject = await tx.project.create({
+            data: {
+              name: parsed.name || 'Untitled Project',
+              description: parsed.description || null,
+            }
+          });
+          
+          // Create charter
+          await tx.projectCharter.create({
+            data: {
+              projectId: newProject.id,
+              narrative: parsed.charter.narrative,
+              prominentFeatures: parsed.charter.prominentFeatures,
+              modes: parsed.charter.modes || null,
+              milestones: parsed.charter.milestones,
+              risks: parsed.charter.risks || null,
+              dependencies: parsed.charter.dependencies || null,
+              instrumentation: parsed.charter.instrumentation || null,
+              acceptanceCriteria: parsed.charter.acceptanceCriteria,
+            }
+          });
+          
+          console.log(`[POST /api/projects] Created project ${newProject.id} with charter in transaction`);
+          
+          return newProject;
+        });
+        console.log(`[POST /api/projects] Project ${project.id} created successfully with charter, Status: 201`);
+      } else {
+        // No charter, just create project
+        project = await prisma.project.create({
+          data: {
+            name: parsed.name || 'Untitled Project',
+            description: parsed.description || null,
+          }
+        });
+        console.log(`[POST /api/projects] Project ${project.id} created successfully (no charter), Status: 201`);
       }
-      
-      project = await prisma.project.create({
-        data: projectData,
-      });
     } catch (dbError: any) {
       if (dbError.code === 'P1001') {
         return res.status(500).json({
@@ -126,46 +153,6 @@ app.post("/api/projects", async (req, res, next) => {
       }
       
       throw dbError;
-    }
-
-    // Create project, charter, and initial log in a transaction
-    if (parsed.charter) {
-      try {
-        // Use transaction to ensure all-or-nothing creation
-        const result = await prisma.$transaction(async (tx) => {
-          // Create charter
-          await tx.projectCharter.create({
-            data: {
-              projectId: project.id,
-              narrative: parsed.charter.narrative,
-              prominentFeatures: parsed.charter.prominentFeatures,
-              modes: parsed.charter.modes || null,
-              milestones: parsed.charter.milestones,
-              risks: parsed.charter.risks || null,
-              dependencies: parsed.charter.dependencies || null,
-              instrumentation: parsed.charter.instrumentation || null,
-              acceptanceCriteria: parsed.charter.acceptanceCriteria,
-            }
-          });
-          
-          // Note: Initial log creation would go here if we had a Log model
-          // For now, we'll just log to console
-          console.log(`[POST /api/projects] Created charter for project ${project.id} in transaction`);
-          
-          return project;
-        });
-        
-        project = result;
-        console.log(`[POST /api/projects] Project ${project.id} created successfully with charter, Status: 201`);
-      } catch (charterError: any) {
-        console.error(`[POST /api/projects] Transaction error (charter/log creation):`, charterError);
-        // If transaction fails, rollback project (it was created outside transaction)
-        // For now, we'll keep the project but log the error
-        // TODO: Wrap entire creation in transaction when Log model exists
-        throw charterError;
-      }
-    } else {
-      console.log(`[POST /api/projects] Project ${project.id} created successfully (no charter), Status: 201`);
     }
     
     return res.status(201).json({ 
