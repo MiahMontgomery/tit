@@ -263,8 +263,9 @@ CRITICAL REQUIREMENTS:
     } catch (error) {
       console.error("Failed to parse reiteration draft:", error);
       // Fallback structure
+      const contextText = context?.text || (typeof context === 'string' ? context : JSON.stringify(context));
       return {
-        narrative: `Project: ${title}${intent ? `\n\nIntent: ${intent}` : ''}\n\nThis project requires careful planning and execution.`,
+        narrative: `Project: ${title}${contextText ? `\n\nDescription: ${contextText}` : ''}\n\nThis project requires careful planning and execution.`,
         prominentFeatures: [{ name: "Core Functionality", description: "Main features", priority: "high" }],
         modes: [{ type: "development", description: "Active development mode", selected: true }],
         milestones: [{ title: "Initial Setup", description: "Project initialization", acceptanceCriteria: [], estimatedCompletion: "1 week" }],
