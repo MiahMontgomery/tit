@@ -24,6 +24,11 @@ app.use(cors({
 
 app.use(express.json({ limit: "1mb" }));
 
+// Request logging middleware (must be before routes)
+import { requestId, logRequest } from "./middleware/requestId.js";
+app.use(requestId());
+app.use(logRequest());
+
 // Routes
 app.use("/api/projects/reiterate", reiterateRouter);
 
@@ -123,31 +128,45 @@ app.post("/api/projects", async (req, res, next) => {
       throw dbError;
     }
 
-    // Create charter if provided
+    // Create project, charter, and initial log in a transaction
     if (parsed.charter) {
       try {
-        await prisma.projectCharter.create({
-          data: {
-            projectId: project.id,
-            narrative: parsed.charter.narrative,
-            prominentFeatures: parsed.charter.prominentFeatures,
-            modes: parsed.charter.modes || null,
-            milestones: parsed.charter.milestones,
-            risks: parsed.charter.risks || null,
-            dependencies: parsed.charter.dependencies || null,
-            instrumentation: parsed.charter.instrumentation || null,
-            acceptanceCriteria: parsed.charter.acceptanceCriteria,
-          }
+        // Use transaction to ensure all-or-nothing creation
+        const result = await prisma.$transaction(async (tx) => {
+          // Create charter
+          await tx.projectCharter.create({
+            data: {
+              projectId: project.id,
+              narrative: parsed.charter.narrative,
+              prominentFeatures: parsed.charter.prominentFeatures,
+              modes: parsed.charter.modes || null,
+              milestones: parsed.charter.milestones,
+              risks: parsed.charter.risks || null,
+              dependencies: parsed.charter.dependencies || null,
+              instrumentation: parsed.charter.instrumentation || null,
+              acceptanceCriteria: parsed.charter.acceptanceCriteria,
+            }
+          });
+          
+          // Note: Initial log creation would go here if we had a Log model
+          // For now, we'll just log to console
+          console.log(`[POST /api/projects] Created charter for project ${project.id} in transaction`);
+          
+          return project;
         });
-        console.log(`[POST /api/projects] Created charter for project ${project.id}`);
+        
+        project = result;
+        console.log(`[POST /api/projects] Project ${project.id} created successfully with charter, Status: 201`);
       } catch (charterError: any) {
-        console.error(`[POST /api/projects] Charter creation error:`, charterError);
-        // Continue even if charter creation fails - project is already created
+        console.error(`[POST /api/projects] Transaction error (charter/log creation):`, charterError);
+        // If transaction fails, rollback project (it was created outside transaction)
+        // For now, we'll keep the project but log the error
+        // TODO: Wrap entire creation in transaction when Log model exists
+        throw charterError;
       }
+    } else {
+      console.log(`[POST /api/projects] Project ${project.id} created successfully (no charter), Status: 201`);
     }
-
-    // Log project initialization
-    console.log(`[POST /api/projects] Project ${project.id} created successfully, Status: 201`);
     
     return res.status(201).json({ 
       ok: true, 
@@ -254,6 +273,104 @@ app.get("/api/projects", async (req, res, next) => {
     console.error(`[GET /api/projects] Unexpected error:`, err);
     
     // Non-database errors
+    return res.status(500).json({
+      ok: false,
+      error: 'Internal server error',
+      errorCode: 'ERR_SERVER_INTERNAL',
+      message: err?.message || 'An unexpected error occurred',
+      details: process.env.NODE_ENV === 'development' ? err?.stack : undefined
+    });
+  }
+});
+
+// Delete project
+app.delete("/api/projects/:id", async (req, res, next) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    if (isNaN(projectId)) {
+      console.error(`[DELETE /api/projects/:id] Invalid project ID: ${req.params.id}`);
+      return res.status(400).json({ 
+        ok: false, 
+        error: 'Invalid project ID',
+        errorCode: 'ERR_VALIDATION',
+        message: 'Project ID must be a valid number'
+      });
+    }
+    
+    console.log(`[DELETE /api/projects/:id] Attempting to delete project ${projectId}, Request ID: ${req.requestId || 'none'}`);
+    
+    // Check if project exists first
+    const existingProject = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: { charter: true }
+    });
+    
+    if (!existingProject) {
+      console.log(`[DELETE /api/projects/:id] Project ${projectId} not found`);
+      return res.status(404).json({ 
+        ok: false, 
+        error: 'Project not found',
+        errorCode: 'ERR_DB_NOT_FOUND',
+        message: `Project with ID ${projectId} does not exist`
+      });
+    }
+    
+    // Delete project (charter will be cascade deleted if foreign key constraint exists)
+    // If cascade doesn't exist, delete charter first
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Delete charter if it exists
+        if (existingProject.charter) {
+          await tx.projectCharter.delete({
+            where: { projectId: projectId }
+          }).catch(() => {
+            // Ignore if already deleted or doesn't exist
+          });
+        }
+        
+        // Delete project
+        await tx.project.delete({
+          where: { id: projectId }
+        });
+      });
+      
+      console.log(`[DELETE /api/projects/:id] Project ${projectId} deleted successfully, Status: 204`);
+      return res.status(204).end();
+    } catch (dbError: any) {
+      console.error(`[DELETE /api/projects/:id] Database error deleting project ${projectId}:`, dbError);
+      
+      if (dbError.code === 'P1001') {
+        return res.status(500).json({
+          ok: false,
+          error: 'Cannot reach database server',
+          errorCode: 'ERR_DB_CONNECTION',
+          message: dbError.message || 'Database server is unreachable'
+        });
+      }
+      
+      if (dbError.code === 'P2025') {
+        return res.status(404).json({
+          ok: false,
+          error: 'Project not found',
+          errorCode: 'ERR_DB_NOT_FOUND',
+          message: `Project with ID ${projectId} does not exist`
+        });
+      }
+      
+      if (dbError.code && dbError.code.startsWith('P')) {
+        return res.status(500).json({
+          ok: false,
+          error: 'Database error',
+          errorCode: `ERR_DB_${dbError.code}`,
+          message: dbError.message,
+          prismaCode: dbError.code
+        });
+      }
+      
+      throw dbError;
+    }
+  } catch (err: any) {
+    console.error(`[DELETE /api/projects/:id] Unexpected error:`, err);
     return res.status(500).json({
       ok: false,
       error: 'Internal server error',
@@ -461,12 +578,24 @@ app.get("/", (req, res) => {
   });
 });
 
-// Error handler
+// Error handler with logging
 app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('API Error:', error);
+  const requestId = (req as any).requestId || 'NO-ID';
+  console.error(`[${requestId}] API Error:`, {
+    message: error.message,
+    stack: error.stack,
+    method: req.method,
+    path: req.path,
+    origin: req.get('origin')
+  });
+  
   res.status(500).json({
     ok: false,
+    error: 'Internal Server Error',
+    errorCode: 'ERR_SERVER_INTERNAL',
     message: error.message || 'Internal Server Error',
+    requestId: requestId,
+    details: process.env.NODE_ENV === 'development' ? error.stack : undefined
   });
 });
 
