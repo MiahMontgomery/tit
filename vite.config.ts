@@ -25,7 +25,11 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    // For static site deployments (Render), output to 'dist'
+    // For full-stack deployments, output to 'dist/public'
+    outDir: process.env.STATIC_SITE_BUILD 
+      ? path.resolve(import.meta.dirname, "dist")
+      : path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
