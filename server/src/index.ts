@@ -29,8 +29,19 @@ import { requestId, logRequest } from "./middleware/requestId.js";
 app.use(requestId());
 app.use(logRequest());
 
-// Routes
+// Routes - Log mounting
+console.log('📋 Mounting routes in server/src/index.ts...');
+process.stdout.write('📋 Mounting routes in server/src/index.ts...\n');
+
 app.use("/api/projects/reiterate", reiterateRouter);
+console.log('✅ Mounted /api/projects/reiterate');
+process.stdout.write('✅ Mounted /api/projects/reiterate\n');
+
+// Mount hierarchy routes
+import hierarchyRouter from "../../routes/projects-hierarchy.js";
+app.use("/api", hierarchyRouter);
+console.log('✅ Mounted /api (hierarchy routes)');
+process.stdout.write('✅ Mounted /api (hierarchy routes)\n');
 
 // Validation schema
 const CreateProject = z.object({
@@ -50,6 +61,9 @@ const CreateProject = z.object({
 
 // Health check
 app.get("/api/health", (req, res) => {
+  const requestId = (req as any).requestId || 'NO-ID';
+  console.log(`[${requestId}] [GET /api/health] Health check hit`);
+  process.stdout.write(`[${requestId}] [GET /api/health] Health check hit\n`);
   res.json({
     ok: true,
     uptime: process.uptime(),
@@ -163,12 +177,19 @@ app.post("/api/projects", async (req, res, next) => {
       }
     });
   } catch (err: any) {
-    console.error(`[POST /api/projects] Unexpected error:`, err);
+    console.error(`[POST /api/projects] Unexpected error:`, {
+      message: err?.message,
+      stack: err?.stack,
+      name: err?.name,
+      code: err?.code,
+      details: err
+    });
     return res.status(500).json({
       ok: false,
       error: 'Internal server error',
       errorCode: 'ERR_SERVER_INTERNAL',
-      message: err?.message || 'An unexpected error occurred'
+      message: err?.message || 'An unexpected error occurred',
+      details: process.env.NODE_ENV === 'development' ? err?.stack : undefined
     });
   }
 });
@@ -257,7 +278,13 @@ app.get("/api/projects", async (req, res, next) => {
     console.log(`[GET /api/projects] Found ${projects.length} projects, Status: 200`);
     return res.json({ ok: true, projects });
   } catch (err: any) {
-    console.error(`[GET /api/projects] Unexpected error:`, err);
+    console.error(`[GET /api/projects] Unexpected error:`, {
+      message: err?.message,
+      stack: err?.stack,
+      name: err?.name,
+      code: err?.code,
+      details: err
+    });
     
     // Non-database errors
     return res.status(500).json({
@@ -357,7 +384,14 @@ app.delete("/api/projects/:id", async (req, res, next) => {
       throw dbError;
     }
   } catch (err: any) {
-    console.error(`[DELETE /api/projects/:id] Unexpected error:`, err);
+    console.error(`[DELETE /api/projects/:id] Unexpected error:`, {
+      projectId: req.params.id,
+      message: err?.message,
+      stack: err?.stack,
+      name: err?.name,
+      code: err?.code,
+      details: err
+    });
     return res.status(500).json({
       ok: false,
       error: 'Internal server error',
@@ -596,7 +630,19 @@ app.use((req, res) => {
 
 // Start server
 const port = Number(process.env.PORT) || 10000;
+
+// CRITICAL: Log startup immediately
+const startupMsg = `🚀 [${new Date().toISOString()}] Starting server on port ${port}...`;
+console.log(startupMsg);
+process.stdout.write(startupMsg + '\n');
+process.stderr.write(startupMsg + '\n');
+
 app.listen(port, '0.0.0.0', () => {
-  console.log(`✅ Server listening on port ${port}`);
+  const readyMsg = `✅ [${new Date().toISOString()}] Server listening on port ${port}`;
+  console.log(readyMsg);
+  process.stdout.write(readyMsg + '\n');
+  process.stderr.write(readyMsg + '\n');
+  
   console.log(`📊 Health check: http://localhost:${port}/api/health`);
+  process.stdout.write(`📊 Health check: http://localhost:${port}/api/health\n`);
 });

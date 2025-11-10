@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
-import { prisma } from "../lib/db.js";
+import { PrismaClient } from "@prisma/client";
 import { llmClient } from "../../core/tools/llm.js";
+
+// Create Prisma client instance
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+});
 
 const router = Router();
 

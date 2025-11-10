@@ -123,7 +123,10 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create project');
+        const errorMessage = errorData.message || errorData.error || `Failed to create project (${response.status})`;
+        const errorCode = errorData.errorCode || errorData.prismaCode || '';
+        const fullError = errorCode ? `${errorMessage} [${errorCode}]` : errorMessage;
+        throw new Error(fullError);
       }
 
       const data = await response.json();
@@ -147,7 +150,13 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
       }, 100);
     } catch (err) {
       console.error('Error creating project:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create project');
+      let errorMessage = 'Failed to create project';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'object' && err !== null) {
+        errorMessage = (err as any).message || JSON.stringify(err);
+      }
+      setError(errorMessage);
       setState('draft_ready');
     }
   };

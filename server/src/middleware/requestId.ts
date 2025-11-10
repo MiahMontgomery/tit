@@ -18,15 +18,25 @@ export const requestId = () => (req: Request, res: Response, next: NextFunction)
 export const logRequest = () => (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   
-  // Log request start
-  console.log(`[${req.requestId || 'NO-ID'}] ${req.method} ${req.path} - ${req.get('origin') || 'no origin'}`);
+  // Log request start - ensure it's flushed
+  const startLog = `[${req.requestId || 'NO-ID'}] ${req.method} ${req.path} - ${req.get('origin') || 'no origin'}`;
+  console.log(startLog);
+  // Force flush in production environments
+  if (process.stdout.isTTY === false) {
+    process.stdout.write(startLog + '\n');
+  }
   
   res.on("finish", () => {
     const duration = Date.now() - start;
     const logLevel = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
     
     // Console log for immediate visibility
-    console.log(`[${req.requestId || 'NO-ID'}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    const finishLog = `[${req.requestId || 'NO-ID'}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`;
+    console.log(finishLog);
+    // Force flush in production environments
+    if (process.stdout.isTTY === false) {
+      process.stdout.write(finishLog + '\n');
+    }
     
     // Also use structured logger
     logger[logLevel]("Request completed", {

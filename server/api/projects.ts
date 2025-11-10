@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { PrismaClient } from "@prisma/client";
 import { projectsRepo } from "../core/repos/projectsRepo.js";
 import { treeRepo } from "../core/repos/treeRepo.js";
 import { tasksRepo } from "../core/repos/tasksRepo.js";
@@ -15,11 +16,26 @@ import { mockStore } from "../core/mockData.ts";
 
 const router = Router();
 
+// Create Prisma client instance
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+});
+
 // Validation schemas
 const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  prompt: z.string().min(1, "Prompt is required"),
-  description: z.string().optional()
+  prompt: z.string().optional(),
+  description: z.string().optional(),
+  charter: z.object({
+    narrative: z.string(),
+    prominentFeatures: z.any(),
+    modes: z.any().optional(),
+    milestones: z.any(),
+    risks: z.any().optional(),
+    dependencies: z.any().optional(),
+    instrumentation: z.any().optional(),
+    acceptanceCriteria: z.any(),
+  }).optional(),
 });
 
 const analyzeProjectSchema = z.object({
@@ -34,58 +50,212 @@ const createTaskSchema = z.object({
 
 // POST /api/projects - Create a new project
 router.post("/", async (req, res) => {
+  const requestId = (req as any).requestId || 'NO-ID';
   try {
-    const { name, prompt, description } = createProjectSchema.parse(req.body);
+    console.log(`[${requestId}] [POST /api/projects] Request received`, {
+      origin: req.get('origin') || 'none',
+      bodyKeys: Object.keys(req.body || {})
+    });
+    
+    const parsed = createProjectSchema.parse(req.body);
+    const { name, prompt, description, charter } = parsed;
 
-    logger.systemInfo("Creating new project", { name, prompt });
-
-    const project = await projectsRepo.create({
-      name,
-      prompt,
-      description: description || ""
+    console.log(`[${requestId}] [POST /api/projects] Creating project "${name}"`, {
+      hasCharter: !!charter,
+      hasPrompt: !!prompt
     });
 
-    logger.systemInfo("Project created successfully", { projectId: project.id });
+    let project;
+    try {
+      if (charter) {
+        // Create project and charter in a single transaction
+        console.log(`[${requestId}] [POST /api/projects] Creating project with charter in transaction`);
+        project = await prisma.$transaction(async (tx) => {
+          // Create project first
+          const newProject = await tx.project.create({
+            data: {
+              name: name || 'Untitled Project',
+              description: description || null,
+            }
+          });
+          
+          console.log(`[${requestId}] [POST /api/projects] Project ${newProject.id} created, creating charter`);
+          
+          // Create charter
+          await tx.projectCharter.create({
+            data: {
+              projectId: newProject.id,
+              narrative: charter.narrative,
+              prominentFeatures: charter.prominentFeatures,
+              modes: charter.modes || null,
+              milestones: charter.milestones,
+              risks: charter.risks || null,
+              dependencies: charter.dependencies || null,
+              instrumentation: charter.instrumentation || null,
+              acceptanceCriteria: charter.acceptanceCriteria,
+            }
+          });
+          
+          console.log(`[${requestId}] [POST /api/projects] Charter created for project ${newProject.id}`);
+          
+          return newProject;
+        });
+        console.log(`[${requestId}] [POST /api/projects] Project ${project.id} created successfully with charter`);
+      } else {
+        // No charter, use projectsRepo for backward compatibility
+        console.log(`[${requestId}] [POST /api/projects] Creating project without charter`);
+        project = await projectsRepo.create({
+          name,
+          prompt: prompt || "",
+          description: description || ""
+        });
+        console.log(`[${requestId}] [POST /api/projects] Project ${project.id} created successfully`);
+      }
 
-    res.status(201).json({
-      success: true,
-      data: project
+      logger.systemInfo("Project created successfully", { projectId: project.id });
+
+      // Return in format expected by frontend
+      res.status(201).json({
+        ok: true,
+        project: {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          hasCharter: !!charter
+        }
+      });
+
+    } catch (dbError: any) {
+      console.error(`[${requestId}] [POST /api/projects] Database error:`, {
+        code: dbError.code,
+        message: dbError.message,
+        meta: dbError.meta,
+        stack: dbError.stack
+      });
+      
+      // Force flush error to stderr with full details
+      const errorDetails = {
+        code: dbError.code,
+        message: dbError.message,
+        meta: dbError.meta,
+        stack: dbError.stack,
+        name: dbError.name
+      };
+      process.stderr.write(`[${requestId}] [POST /api/projects] Database error: ${JSON.stringify(errorDetails, null, 2)}\n`);
+      
+      logger.systemError("Database error creating project", { 
+        error: dbError.message,
+        code: dbError.code,
+        meta: dbError.meta
+      });
+      
+      if (dbError.code === 'P1001') {
+        return res.status(500).json({
+          ok: false,
+          error: 'Cannot reach database server',
+          errorCode: 'ERR_DB_CONNECTION',
+          message: dbError.message || 'Database server is unreachable'
+        });
+      }
+      
+      if (dbError.code === 'P2002') {
+        return res.status(409).json({
+          ok: false,
+          error: 'Project name already exists',
+          errorCode: 'ERR_DB_DUPLICATE',
+          message: `A project with name "${name}" already exists`,
+          field: dbError.meta?.target?.[0] || 'name'
+        });
+      }
+      
+      if (dbError.code && dbError.code.startsWith('P')) {
+        return res.status(500).json({
+          ok: false,
+          error: 'Database error',
+          errorCode: `ERR_DB_${dbError.code}`,
+          message: dbError.message,
+          prismaCode: dbError.code
+        });
+      }
+      
+      throw dbError;
+    }
+
+  } catch (error: any) {
+    console.error(`[${requestId}] [POST /api/projects] Error:`, {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+      code: error?.code
     });
-
-  } catch (error) {
-    logger.systemError("Failed to create project", { error: error instanceof Error ? error.message : 'Unknown error' });
+    
+    // Force flush error to stderr
+    process.stderr.write(`[${requestId}] [POST /api/projects] Error: ${error?.message || 'Unknown error'}\n`);
+    
+    logger.systemError("Failed to create project", { 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     
     if (error instanceof z.ZodError) {
       return res.status(400).json({
-        success: false,
+        ok: false,
         error: "Validation failed",
+        errorCode: 'ERR_VALIDATION',
         details: error.errors
       });
     }
 
     res.status(500).json({
-      success: false,
-      error: "Failed to create project"
+      ok: false,
+      error: error?.message || "Failed to create project",
+      errorCode: 'ERR_SERVER_INTERNAL'
     });
   }
 });
 
 // GET /api/projects - Get all projects
 router.get("/", async (req, res) => {
+  const requestId = (req as any).requestId || 'NO-ID';
   try {
-    const projects = await projectsRepo.getAll();
+    console.log(`[${requestId}] [GET /api/projects] Fetching projects`);
     
+    // Use Prisma directly to get projects with charters
+    const projects = await prisma.project.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        createdAt: true,
+      },
+      orderBy: { id: 'desc' },
+      take: 50,
+    });
+    
+    console.log(`[${requestId}] [GET /api/projects] Found ${projects.length} projects`);
+    
+    // Return in format expected by frontend
     res.json({
-      success: true,
-      data: projects
+      ok: true,
+      projects: projects
     });
 
-  } catch (error) {
+  } catch (error: any) {
+    console.error(`[${requestId}] [GET /api/projects] Error:`, {
+      message: error?.message,
+      stack: error?.stack,
+      code: error?.code
+    });
+    
+    // Force flush error to stderr
+    process.stderr.write(`[${requestId}] [GET /api/projects] Error: ${error?.message || 'Unknown error'}\n`);
+    
     logger.systemError("Failed to get projects", { error: error instanceof Error ? error.message : 'Unknown error' });
     
     res.status(500).json({
-      success: false,
-      error: "Failed to get projects"
+      ok: false,
+      error: error?.message || "Failed to get projects",
+      errorCode: 'ERR_SERVER_INTERNAL'
     });
   }
 });

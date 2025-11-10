@@ -179,9 +179,16 @@ async function start(): Promise<void> {
     isRunning = true;
     logger.info('Starting Titan worker');
     
-    // Start heartbeat
+    // Start heartbeat with detailed logging
     setInterval(() => {
-      logger.info('Worker heartbeat');
+      const timestamp = new Date().toISOString();
+      logger.info('Worker heartbeat', {
+        timestamp,
+        uptime: process.uptime(),
+        memoryUsage: process.memoryUsage(),
+        isRunning
+      });
+      console.log(`[${timestamp}] Worker heartbeat - Uptime: ${Math.floor(process.uptime())}s, Running: ${isRunning}`);
     }, 60000); // Every minute
     
     // Start main loop (non-blocking)

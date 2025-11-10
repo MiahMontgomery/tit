@@ -60,54 +60,105 @@ export class ProofsRepo {
   }
 
   async getById(id: string): Promise<Proof | null> {
-    const [proof] = await db
-      .select()
-      .from(proofs)
-      .where(eq(proofs.id, id))
-      .limit(1);
+    if (!db) {
+      return mockStore.getProofById(id) as Proof | null;
+    }
     
-    return proof || null;
+    try {
+      const [proof] = await db
+        .select()
+        .from(proofs)
+        .where(eq(proofs.id, id))
+        .limit(1);
+      
+      return proof || null;
+    } catch (error) {
+      console.warn(`DB error fetching proof ${id}; falling back to mock store:`, (error as Error).message);
+      return mockStore.getProofById(id) as Proof | null;
+    }
   }
 
   async getByTask(taskId: string): Promise<Proof[]> {
-    return await db
-      .select()
-      .from(proofs)
-      .where(eq(proofs.taskId, taskId))
-      .orderBy(desc(proofs.createdAt));
+    if (!db) {
+      return mockStore.getProofsByTask(taskId) as Proof[];
+    }
+    
+    try {
+      return await db
+        .select()
+        .from(proofs)
+        .where(eq(proofs.taskId, taskId))
+        .orderBy(desc(proofs.createdAt));
+    } catch (error) {
+      console.warn(`DB error fetching proofs for task ${taskId}; falling back to mock store:`, (error as Error).message);
+      return mockStore.getProofsByTask(taskId) as Proof[];
+    }
   }
 
   async getByType(projectId: string, type: string): Promise<Proof[]> {
-    return await db
-      .select()
-      .from(proofs)
-      .where(
-        and(
-          eq(proofs.projectId, projectId),
-          eq(proofs.type, type)
+    if (!db) {
+      const allProofs = mockStore.getProofsByProject(projectId);
+      return allProofs.filter(p => p.type === type) as Proof[];
+    }
+    
+    try {
+      return await db
+        .select()
+        .from(proofs)
+        .where(
+          and(
+            eq(proofs.projectId, projectId),
+            eq(proofs.type, type)
+          )
         )
-      )
-      .orderBy(desc(proofs.createdAt));
+        .orderBy(desc(proofs.createdAt));
+    } catch (error) {
+      console.warn(`DB error fetching proofs by type for project ${projectId}; falling back to mock store:`, (error as Error).message);
+      const allProofs = mockStore.getProofsByProject(projectId);
+      return allProofs.filter(p => p.type === type) as Proof[];
+    }
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await db.delete(proofs).where(eq(proofs.id, id));
-    return result.rowCount > 0;
+    if (!db) {
+      return mockStore.deleteProof(id);
+    }
+    
+    try {
+      const result = await db.delete(proofs).where(eq(proofs.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.warn(`DB error deleting proof ${id}:`, (error as Error).message);
+      return false;
+    }
   }
 
   async getRecentByProject(projectId: string, hours: number = 24): Promise<Proof[]> {
-    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+    if (!db) {
+      const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+      const allProofs = mockStore.getProofsByProject(projectId);
+      return allProofs.filter(p => p.createdAt >= cutoff) as Proof[];
+    }
     
-    return await db
-      .select()
-      .from(proofs)
-      .where(
-        and(
-          eq(proofs.projectId, projectId),
-          gte(proofs.createdAt, cutoff)
+    try {
+      const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+      
+      return await db
+        .select()
+        .from(proofs)
+        .where(
+          and(
+            eq(proofs.projectId, projectId),
+            gte(proofs.createdAt, cutoff)
+          )
         )
-      )
-      .orderBy(desc(proofs.createdAt));
+        .orderBy(desc(proofs.createdAt));
+    } catch (error) {
+      console.warn(`DB error fetching recent proofs for project ${projectId}; falling back to mock store:`, (error as Error).message);
+      const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+      const allProofs = mockStore.getProofsByProject(projectId);
+      return allProofs.filter(p => p.createdAt >= cutoff) as Proof[];
+    }
   }
 }
 

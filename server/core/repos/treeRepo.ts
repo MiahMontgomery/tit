@@ -151,69 +151,170 @@ export class TreeRepo {
   }
 
   async createFeature(projectId: string, name: string, description: string = ""): Promise<Feature> {
-    const [feature] = await db
-      .insert(features)
-      .values({
+    if (!db) {
+      return mockStore.createFeature({
         projectId,
         name,
         description,
         status: "pending",
         orderIndex: 0
-      })
-      .returning();
-    return feature;
+      }) as Feature;
+    }
+    
+    try {
+      const [feature] = await db
+        .insert(features)
+        .values({
+          projectId,
+          name,
+          description,
+          status: "pending",
+          orderIndex: 0
+        })
+        .returning();
+      return feature;
+    } catch (error) {
+      console.warn(`DB error creating feature; falling back to mock store:`, (error as Error).message);
+      return mockStore.createFeature({
+        projectId,
+        name,
+        description,
+        status: "pending",
+        orderIndex: 0
+      }) as Feature;
+    }
   }
 
   async createMilestone(projectId: string, featureId: string, title: string, description: string = ""): Promise<Milestone> {
-    const [milestone] = await db
-      .insert(milestones)
-      .values({
+    if (!db) {
+      return mockStore.createMilestone({
         projectId,
         featureId,
         title,
         description,
         status: "pending",
         orderIndex: 0
-      })
-      .returning();
-    return milestone;
+      }) as Milestone;
+    }
+    
+    try {
+      const [milestone] = await db
+        .insert(milestones)
+        .values({
+          projectId,
+          featureId,
+          title,
+          description,
+          status: "pending",
+          orderIndex: 0
+        })
+        .returning();
+      return milestone;
+    } catch (error) {
+      console.warn(`DB error creating milestone; falling back to mock store:`, (error as Error).message);
+      return mockStore.createMilestone({
+        projectId,
+        featureId,
+        title,
+        description,
+        status: "pending",
+        orderIndex: 0
+      }) as Milestone;
+    }
   }
 
   async createGoal(projectId: string, milestoneId: string, title: string, description: string = ""): Promise<Goal> {
-    const [goal] = await db
-      .insert(goals)
-      .values({
+    if (!db) {
+      return mockStore.createGoal({
         projectId,
         milestoneId,
         title,
         description,
         status: "pending",
         priority: 0,
+        score: 0,
         orderIndex: 0
-      })
-      .returning();
-    return goal;
+      }) as Goal;
+    }
+    
+    try {
+      const [goal] = await db
+        .insert(goals)
+        .values({
+          projectId,
+          milestoneId,
+          title,
+          description,
+          status: "pending",
+          priority: 0,
+          orderIndex: 0
+        })
+        .returning();
+      return goal;
+    } catch (error) {
+      console.warn(`DB error creating goal; falling back to mock store:`, (error as Error).message);
+      return mockStore.createGoal({
+        projectId,
+        milestoneId,
+        title,
+        description,
+        status: "pending",
+        priority: 0,
+        score: 0,
+        orderIndex: 0
+      }) as Goal;
+    }
   }
 
   async updateFeatureStatus(featureId: string, status: string): Promise<void> {
-    await db
-      .update(features)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(features.id, featureId));
+    if (!db) {
+      mockStore.updateFeatureStatus(featureId, status);
+      return;
+    }
+    
+    try {
+      await db
+        .update(features)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(features.id, featureId));
+    } catch (error) {
+      console.warn(`DB error updating feature status; falling back to mock store:`, (error as Error).message);
+      mockStore.updateFeatureStatus(featureId, status);
+    }
   }
 
   async updateMilestoneStatus(milestoneId: string, status: string): Promise<void> {
-    await db
-      .update(milestones)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(milestones.id, milestoneId));
+    if (!db) {
+      mockStore.updateMilestoneStatus(milestoneId, status);
+      return;
+    }
+    
+    try {
+      await db
+        .update(milestones)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(milestones.id, milestoneId));
+    } catch (error) {
+      console.warn(`DB error updating milestone status; falling back to mock store:`, (error as Error).message);
+      mockStore.updateMilestoneStatus(milestoneId, status);
+    }
   }
 
   async updateGoalStatus(goalId: string, status: string): Promise<void> {
-    await db
-      .update(goals)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(goals.id, goalId));
+    if (!db) {
+      mockStore.updateGoalStatus(goalId, status);
+      return;
+    }
+    
+    try {
+      await db
+        .update(goals)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(goals.id, goalId));
+    } catch (error) {
+      console.warn(`DB error updating goal status; falling back to mock store:`, (error as Error).message);
+      mockStore.updateGoalStatus(goalId, status);
+    }
   }
 
   async insertPlanTree(projectId: string, plan: any): Promise<{

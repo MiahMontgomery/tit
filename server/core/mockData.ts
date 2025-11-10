@@ -63,9 +63,9 @@ export interface MockTask {
 export interface MockMessage {
   id: string;
   projectId: string;
-  body: string;
-  type: string;
-  meta: any;
+  role: string;
+  content: string;
+  metadata: any;
   createdAt: Date;
 }
 
@@ -174,6 +174,10 @@ class MockDataStore {
     return this.tasks.filter(t => t.projectId === projectId);
   }
 
+  getTaskById(id: string): MockTask | null {
+    return this.tasks.find(t => t.id === id) || null;
+  }
+
   getNextQueuedTask(projectId: string): MockTask | null {
     return this.tasks.find(t => t.projectId === projectId && t.status === 'queued') || null;
   }
@@ -204,6 +208,19 @@ class MockDataStore {
     return this.messages.filter(m => m.projectId === projectId);
   }
 
+  getMessageById(id: string): MockMessage | null {
+    return this.messages.find(m => m.id === id) || null;
+  }
+
+  deleteMessage(id: string): boolean {
+    const index = this.messages.findIndex(m => m.id === id);
+    if (index !== -1) {
+      this.messages.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
   // Proof methods
   createProof(data: Omit<MockProof, 'id' | 'createdAt'>): MockProof {
     const proof: MockProof = {
@@ -217,6 +234,48 @@ class MockDataStore {
 
   getProofsByProject(projectId: string): MockProof[] {
     return this.proofs.filter(p => p.projectId === projectId);
+  }
+
+  getProofById(id: string): MockProof | null {
+    return this.proofs.find(p => p.id === id) || null;
+  }
+
+  getProofsByTask(taskId: string): MockProof[] {
+    return this.proofs.filter(p => p.taskId === taskId);
+  }
+
+  deleteProof(id: string): boolean {
+    const index = this.proofs.findIndex(p => p.id === id);
+    if (index !== -1) {
+      this.proofs.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
+  // Status update methods
+  updateFeatureStatus(featureId: string, status: string): void {
+    const feature = this.features.find(f => f.id === featureId);
+    if (feature) {
+      feature.status = status;
+      feature.updatedAt = new Date();
+    }
+  }
+
+  updateMilestoneStatus(milestoneId: string, status: string): void {
+    const milestone = this.milestones.find(m => m.id === milestoneId);
+    if (milestone) {
+      milestone.status = status;
+      milestone.updatedAt = new Date();
+    }
+  }
+
+  updateGoalStatus(goalId: string, status: string): void {
+    const goal = this.goals.find(g => g.id === goalId);
+    if (goal) {
+      goal.status = status;
+      goal.updatedAt = new Date();
+    }
   }
 }
 
