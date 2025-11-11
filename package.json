@@ -29,7 +29,7 @@
     "db:push": "prisma db push",
     "db:setup": "node scripts/setup-db.js",
     "db:test": "node scripts/test-db.js",
-    "migrate": "tsx server/migrate.ts",
+    "migrate:tsx": "tsx server/migrate.ts",
     "worker": "tsx server/worker.ts",
     "smoke": "tsx scripts/smoke.ts",
     "smoke-autonomy": "tsx scripts/smoke-autonomy.ts",
