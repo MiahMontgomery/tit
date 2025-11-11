@@ -427,104 +427,15 @@ app.get("/api/projects/:id/charter", async (req, res, next) => {
 });
 
 // Stub endpoints for project-related data - return empty arrays to prevent frontend errors
-// These will be implemented fully as features are added
-
-// GET /api/projects/:id/messages
-app.get("/api/projects/:id/messages", async (req, res) => {
-  try {
-    const projectId = parseInt(req.params.id);
-    if (isNaN(projectId)) {
-      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
-    }
-    // Return empty array - messages feature not implemented yet
-    return res.json([]);
-  } catch (err) {
-    console.error(`[GET /api/projects/:id/messages] Error:`, err);
-    return res.json([]); // Return empty array even on error
-  }
-});
-
-// GET /api/projects/:id/memory
-app.get("/api/projects/:id/memory", async (req, res) => {
-  try {
-    const projectId = parseInt(req.params.id);
-    if (isNaN(projectId)) {
-      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
-    }
-    // Return empty array - memory feature not implemented yet
-    return res.json([]);
-  } catch (err) {
-    console.error(`[GET /api/projects/:id/memory] Error:`, err);
-    return res.json([]);
-  }
-});
-
-// GET /api/projects/:id/tasks
-app.get("/api/projects/:id/tasks", async (req, res) => {
-  try {
-    const projectId = parseInt(req.params.id);
-    if (isNaN(projectId)) {
-      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
-    }
-    // Return empty array - tasks feature not implemented yet
-    return res.json([]);
-  } catch (err) {
-    console.error(`[GET /api/projects/:id/tasks] Error:`, err);
-    return res.json([]);
-  }
-});
-
-// POST /api/projects/:id/tasks
-app.post("/api/projects/:id/tasks", async (req, res) => {
-  try {
-    const projectId = parseInt(req.params.id);
-    if (isNaN(projectId)) {
-      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
-    }
-    // Stub implementation - tasks feature not fully implemented yet
-    return res.status(201).json({ 
-      ok: true, 
-      id: `task-${Date.now()}`,
-      projectId,
-      content: req.body.content || '',
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    });
-  } catch (err) {
-    console.error(`[POST /api/projects/:id/tasks] Error:`, err);
-    return res.status(500).json({ ok: false, error: 'Failed to create task' });
-  }
-});
-
-// GET /api/projects/:id/runs
-app.get("/api/projects/:id/runs", async (req, res) => {
-  try {
-    const projectId = parseInt(req.params.id);
-    if (isNaN(projectId)) {
-      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
-    }
-    // Return empty array - runs feature not implemented yet
-    return res.json([]);
-  } catch (err) {
-    console.error(`[GET /api/projects/:id/runs] Error:`, err);
-    return res.json([]);
-  }
-});
-
-// GET /api/projects/:id/logs
-app.get("/api/projects/:id/logs", async (req, res) => {
-  try {
-    const projectId = parseInt(req.params.id);
-    if (isNaN(projectId)) {
-      return res.status(400).json({ ok: false, error: 'Invalid project ID' });
-    }
-    // Return empty array - logs feature not implemented yet
-    return res.json([]);
-  } catch (err) {
-    console.error(`[GET /api/projects/:id/logs] Error:`, err);
-    return res.json([]);
-  }
-});
+// Import the real projects router that has actual task/runs/logs/messages implementation
+import projectsRouter from "../api/projects.js";
+import messagesRouter from "../api/messages.js";
+app.use("/api/projects", projectsRouter);
+app.use("/api/messages", messagesRouter);
+console.log('✅ Mounted /api/projects (with real task/runs/logs implementation)');
+console.log('✅ Mounted /api/messages (with real message implementation)');
+process.stdout.write('✅ Mounted /api/projects (with real task/runs/logs implementation)\n');
+process.stdout.write('✅ Mounted /api/messages (with real message implementation)\n');
 
 // GET /api/projects/:id/proofs
 app.get("/api/projects/:id/proofs", async (req, res) => {
