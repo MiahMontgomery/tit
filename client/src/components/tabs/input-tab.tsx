@@ -148,13 +148,15 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       }
       return response.json();
     },
-    onSuccess: (task) => {
+    onSuccess: (response) => {
+      // Backend returns { success: true, data: task }
+      const task = response.data || response;
       // Add task to chat
       const taskMessage: ChatMessage = {
-        id: task.id,
-        content: `Task: ${task.content}`,
+        id: task.id || `task-${Date.now()}`,
+        content: `Task: ${task.payload?.content || task.content || message}`,
         sender: 'user',
-        timestamp: task.createdAt,
+        timestamp: task.createdAt || new Date().toISOString(),
         type: 'action',
         metadata: {
           action: 'task_created',
@@ -163,7 +165,24 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       };
       setMessages(prev => [...prev, taskMessage]);
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', projectId] });
       setMessage('');
+    },
+    onError: (error) => {
+      console.error('Failed to create task:', error);
+      // Show error to user
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to create task'}`,
+        sender: 'assistant',
+        timestamp: new Date().toISOString(),
+        type: 'action',
+        metadata: {
+          action: 'error',
+          status: 'error'
+        }
+      };
+      setMessages(prev => [...prev, errorMessage]);
     },
   });
 
