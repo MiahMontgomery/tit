@@ -2,13 +2,22 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
+// Log API base on module load (will show in browser console)
+console.log('[queryClient] VITE_API_BASE:', import.meta.env.VITE_API_BASE || '(not set)');
+console.log('[queryClient] API_BASE resolved to:', API_BASE || '(empty - will use relative URLs)');
+
 export function getApiUrl(path: string): string {
   // If path already includes the base URL, use it as-is
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
   // Otherwise prepend the base URL
-  return `${API_BASE}${path}`;
+  const fullUrl = `${API_BASE}${path}`;
+  
+  // Always log to help debug (even in production)
+  console.log('[getApiUrl]', path, '->', fullUrl);
+  
+  return fullUrl;
 }
 
 async function throwIfResNotOk(res: Response) {
