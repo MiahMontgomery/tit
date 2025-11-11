@@ -30,9 +30,32 @@ router.get("/hierarchy/:id", optionalPatMiddleware, async (req, res) => {
       return res.status(400).json({ ok: false, error: "Invalid project ID" });
     }
     
+    // Use select to only query fields that exist in the database
+    // The database doesn't have a 'title' column, so we exclude it
     const project = await prisma.project.findUnique({
       where: { id: projectIdInt },
-      include: { charter: true }
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        createdAt: true,
+        charter: {
+          select: {
+            id: true,
+            projectId: true,
+            narrative: true,
+            prominentFeatures: true,
+            modes: true,
+            milestones: true,
+            risks: true,
+            dependencies: true,
+            instrumentation: true,
+            acceptanceCriteria: true,
+            createdAt: true,
+            updatedAt: true,
+          }
+        }
+      }
     });
     
     if (!project) {
@@ -88,10 +111,31 @@ router.post("/hierarchy/:id/plan", optionalPatMiddleware, async (req, res) => {
       return res.status(400).json({ ok: false, error: "Invalid project ID" });
     }
     
-    // Verify project exists
+    // Verify project exists - use select to avoid querying non-existent fields
     const project = await prisma.project.findUnique({
       where: { id: projectIdInt },
-      include: { charter: true }
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        createdAt: true,
+        charter: {
+          select: {
+            id: true,
+            projectId: true,
+            narrative: true,
+            prominentFeatures: true,
+            modes: true,
+            milestones: true,
+            risks: true,
+            dependencies: true,
+            instrumentation: true,
+            acceptanceCriteria: true,
+            createdAt: true,
+            updatedAt: true,
+          }
+        }
+      }
     });
     
     if (!project) {
