@@ -131,12 +131,21 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   // Send task mutation
   const sendTaskMutation = useMutation({
     mutationFn: async (content: string) => {
+      // Backend expects { goalId, type, payload } format
+      // Convert user message to task format
       const response = await fetchApi(`/api/projects/${projectId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ 
+          type: 'message', // Task type for user messages
+          payload: { content }, // Put content in payload
+          goalId: null // No specific goal for user messages
+        }),
       });
-      if (!response.ok) throw new Error('Failed to create task');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Failed to create task');
+      }
       return response.json();
     },
     onSuccess: (task) => {
