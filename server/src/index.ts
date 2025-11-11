@@ -38,7 +38,8 @@ console.log('✅ Mounted /api/projects/reiterate');
 process.stdout.write('✅ Mounted /api/projects/reiterate\n');
 
 // Mount hierarchy routes
-import hierarchyRouter from "../routes/projects-hierarchy.ts";
+// Import with .js extension (TypeScript ESM convention - resolves to .ts at build time)
+import hierarchyRouter from "../routes/projects-hierarchy.js";
 app.use("/api", hierarchyRouter);
 console.log('✅ Mounted /api (hierarchy routes)');
 process.stdout.write('✅ Mounted /api (hierarchy routes)\n');
