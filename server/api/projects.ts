@@ -509,6 +509,65 @@ router.get("/:id/tasks", async (req, res) => {
   }
 });
 
+// GET /api/projects/:id/runs - Get project runs
+router.get("/:id/runs", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Try to use RunsRepo if available, otherwise return empty array
+    try {
+      const { RunsRepo } = await import("../src/lib/repos/RunsRepo.js");
+      const runs = await RunsRepo.getByProject(id);
+      res.json({
+        success: true,
+        data: runs
+      });
+    } catch (importError) {
+      // If RunsRepo doesn't exist or schema doesn't match, return empty array
+      logger.projectInfo(id, "Runs endpoint - returning empty (not implemented)", {});
+      res.json({
+        success: true,
+        data: []
+      });
+    }
+
+  } catch (error) {
+    logger.projectError(req.params.id, "Failed to get project runs", { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: "Failed to get project runs"
+    });
+  }
+});
+
+// GET /api/projects/:id/logs - Get project logs
+router.get("/:id/logs", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Logs are typically stored in messages or a separate logs table
+    // For now, return empty array until logs table is implemented
+    logger.projectInfo(id, "Logs endpoint - returning empty (not implemented)", {});
+    res.json({
+      success: true,
+      data: []
+    });
+
+  } catch (error) {
+    logger.projectError(req.params.id, "Failed to get project logs", { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: "Failed to get project logs"
+    });
+  }
+});
+
 // POST /api/projects/:id/score-goals - Score and get top 3 goals
 router.post("/:id/score-goals", async (req, res) => {
   try {
