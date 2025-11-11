@@ -131,22 +131,40 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   // Send task mutation
   const sendTaskMutation = useMutation({
     mutationFn: async (content: string) => {
+      console.log('[InputTab] Sending task:', { projectId, content });
+      
       // Backend expects { goalId, type, payload } format
       // Convert user message to task format
-      const response = await fetchApi(`/api/projects/${projectId}/tasks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          type: 'message', // Task type for user messages
-          payload: { content }, // Put content in payload
-          goalId: null // No specific goal for user messages
-        }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || 'Failed to create task');
+      const requestBody = { 
+        type: 'message', // Task type for user messages
+        payload: { content }, // Put content in payload
+        goalId: null // No specific goal for user messages
+      };
+      
+      console.log('[InputTab] Request body:', requestBody);
+      
+      try {
+        const response = await fetchApi(`/api/projects/${projectId}/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+        
+        console.log('[InputTab] Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('[InputTab] Error response:', errorData);
+          throw new Error(errorData.error || errorData.message || `Failed to create task (${response.status})`);
+        }
+        
+        const data = await response.json();
+        console.log('[InputTab] Success response:', data);
+        return data;
+      } catch (error) {
+        console.error('[InputTab] Task creation error:', error);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: (response) => {
       // Backend returns { success: true, data: task }

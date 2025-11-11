@@ -201,8 +201,30 @@ export const queryClient = new QueryClient({
 // Helper function for direct fetch calls with API base URL
 export async function fetchApi(url: string, options?: RequestInit): Promise<Response> {
   const apiUrl = getApiUrl(url);
-  return fetch(apiUrl, {
-    ...options,
-    credentials: "include",
-  });
+  
+  // Log in development to debug API calls
+  if (import.meta.env.DEV) {
+    console.log('[fetchApi]', options?.method || 'GET', apiUrl, {
+      hasBody: !!options?.body,
+      headers: options?.headers
+    });
+  }
+  
+  try {
+    const response = await fetch(apiUrl, {
+      ...options,
+      credentials: "include",
+    });
+    
+    // Log errors in development
+    if (import.meta.env.DEV && !response.ok) {
+      console.error('[fetchApi] Error:', response.status, response.statusText, apiUrl);
+    }
+    
+    return response;
+  } catch (error) {
+    // Log network errors
+    console.error('[fetchApi] Network error:', error, apiUrl);
+    throw error;
+  }
 }
