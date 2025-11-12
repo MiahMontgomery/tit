@@ -61,27 +61,53 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
       setState('generating_draft');
       
       try {
+        console.log('[ReiterationModal] Starting draft generation for:', title.trim());
+        
+        // Add timeout handling - LLM can take 2+ minutes
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
+        
+        try {
           const response = await fetchApi('/api/projects/reiterate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: title.trim(),
-            context: description.trim() ? { text: description.trim() } : undefined,
-            previousDraftId: draft?.draftId,
-            userEdits: userEdits.trim() || undefined,
-          }),
-        });
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: title.trim(),
+              context: description.trim() ? { text: description.trim() } : undefined,
+              previousDraftId: draft?.draftId,
+              userEdits: userEdits.trim() || undefined,
+            }),
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to generate draft');
+          console.log('[ReiterationModal] Response received:', { status: response.status, ok: response.ok });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('[ReiterationModal] Error response:', errorData);
+            throw new Error(errorData.error || `Failed to generate draft (${response.status})`);
+          }
+
+          const data = await response.json();
+          console.log('[ReiterationModal] Draft data received:', { draftId: data.draft?.draftId, version: data.draft?.version });
+          
+          if (!data.draft) {
+            throw new Error('Invalid response: missing draft data');
+          }
+          
+          setDraft(data.draft);
+          setState('draft_ready');
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Request timed out after 3 minutes. The plan generation is taking longer than expected.');
+          }
+          throw fetchError;
         }
-
-        const data = await response.json();
-        setDraft(data.draft);
-        setState('draft_ready');
       } catch (err) {
-        console.error('Error generating draft:', err);
+        console.error('[ReiterationModal] Error generating draft:', err);
         setError(err instanceof Error ? err.message : 'Failed to generate draft');
         setState('collecting_input');
       }
