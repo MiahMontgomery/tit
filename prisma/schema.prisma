@@ -16,11 +16,11 @@ enum JobStatus {
 }
 
 // Keep existing Project as created by 0_init (avoid changing it via Prisma now)
+// Note: 'title' field removed from schema as it doesn't exist in the database
 model Project {
   id          Int      @id @default(autoincrement())
   name        String
   description String?
-  title       String?
   intent      String?
   context     Json?
   modeSelection String?
