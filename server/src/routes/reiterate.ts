@@ -173,8 +173,9 @@ router.post("/", async (req, res, next) => {
     }
 
     console.log(`[POST /api/projects/reiterate] Draft v${nextVersion} created (ID: ${savedDraft.id}), Status: 201`);
+    process.stdout.write(`[POST /api/projects/reiterate] Draft v${nextVersion} created (ID: ${savedDraft.id}), Status: 201\n`);
     
-    return res.status(201).json({
+    const responseData = {
       ok: true,
       draft: {
         draftId: savedDraft.id,
@@ -192,7 +193,17 @@ router.post("/", async (req, res, next) => {
         userEdits: savedDraft.userEdits,
         createdAt: savedDraft.createdAt || new Date().toISOString(),
       }
-    });
+    };
+    
+    console.log(`[POST /api/projects/reiterate] Sending response to client`);
+    process.stdout.write(`[POST /api/projects/reiterate] Sending response to client\n`);
+    
+    // Ensure response is sent and flushed
+    res.status(201).json(responseData);
+    
+    // Log after response is sent
+    console.log(`[POST /api/projects/reiterate] Response sent successfully`);
+    process.stdout.write(`[POST /api/projects/reiterate] Response sent successfully\n`);
   } catch (err: any) {
     console.error(`[POST /api/projects/reiterate] Error:`, err);
     
