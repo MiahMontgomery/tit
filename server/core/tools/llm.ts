@@ -40,6 +40,12 @@ export class LLMClient {
     }
 
     try {
+      // Add timeout using AbortController
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+      
+      console.log(`[LLM] Starting request to ${this.baseUrl}/chat/completions with model ${model}, maxTokens: ${maxTokens}`);
+      
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
@@ -58,21 +64,32 @@ export class LLMClient {
           ],
           max_tokens: maxTokens,
           temperature: 0.7
-        })
+        }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        console.error(`[LLM] API error: ${response.status} ${response.statusText}`, errorText);
         throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json() as any;
       
+      console.log(`[LLM] Successfully generated text, tokens: ${data.usage?.total_tokens || 'unknown'}`);
+      
       return {
         content: data.choices[0].message.content,
         usage: data.usage
       };
-    } catch (error) {
-      console.error("LLM API error:", error);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error("[LLM] Request timeout after 2 minutes");
+        throw new Error("LLM request timed out after 2 minutes. Please try again.");
+      }
+      console.error("[LLM] API error:", error);
       throw new Error(`Failed to generate text: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

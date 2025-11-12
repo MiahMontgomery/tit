@@ -87,16 +87,23 @@ router.post("/", async (req, res, next) => {
 
     // Generate draft using LLM
     console.log(`[POST /api/projects/reiterate] Generating draft v${nextVersion} for "${parsed.title}"`);
+    process.stdout.write(`[POST /api/projects/reiterate] Generating draft v${nextVersion} for "${parsed.title}"\n`);
+    
     let draft;
     try {
+      const startTime = Date.now();
       draft = await llmClient.generateReiterationDraft({
         title: parsed.title,
         context: parsed.context,
         previousVersion,
         userEdits: parsed.userEdits,
       });
+      const duration = Date.now() - startTime;
+      console.log(`[POST /api/projects/reiterate] Draft generated in ${duration}ms`);
+      process.stdout.write(`[POST /api/projects/reiterate] Draft generated in ${duration}ms\n`);
     } catch (llmError: any) {
       console.error(`[POST /api/projects/reiterate] LLM generation error:`, llmError);
+      process.stderr.write(`[POST /api/projects/reiterate] LLM generation error: ${llmError?.message || 'Unknown error'}\n`);
       return res.status(500).json({
         ok: false,
         error: 'Failed to generate project draft',

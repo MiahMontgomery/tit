@@ -128,15 +128,19 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       };
       
       console.log('[InputTab] Request body:', requestBody);
+      console.log('[InputTab] API URL will be:', `/api/projects/${projectId}/tasks`);
       
       try {
-        const response = await fetchApi(`/api/projects/${projectId}/tasks`, {
+        const apiUrl = `/api/projects/${projectId}/tasks`;
+        console.log('[InputTab] Calling fetchApi with:', { method: 'POST', url: apiUrl, body: requestBody });
+        
+        const response = await fetchApi(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody),
         });
         
-        console.log('[InputTab] Response status:', response.status, response.statusText);
+        console.log('[InputTab] Response received:', { status: response.status, statusText: response.statusText, ok: response.ok });
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -149,6 +153,9 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         return data;
       } catch (error) {
         console.error('[InputTab] Task creation error:', error);
+        if (error instanceof Error) {
+          console.error('[InputTab] Error details:', { message: error.message, stack: error.stack });
+        }
         throw error;
       }
     },
