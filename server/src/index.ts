@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import { prisma } from "./lib/db.js";
+// Import Drizzle db early to trigger DATABASE_URL validation at startup
+import "../core/repos/db.js";
 import { z } from "zod";
 import reiterateRouter from "./routes/reiterate.js";
 

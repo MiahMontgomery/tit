@@ -4,20 +4,39 @@ const { Pool } = pkg;
 import * as schema from "../../drizzle/schema.js";
 
 if (!process.env.DATABASE_URL) {
-  console.warn("⚠️  DATABASE_URL not set - running in mock mode");
-  process.stderr.write("⚠️  DATABASE_URL not set - running in mock mode\n");
+  const warnMsg = "⚠️  [DRIZZLE] DATABASE_URL not set - running in mock mode";
+  console.warn(warnMsg);
+  process.stderr.write(warnMsg + '\n');
+  
+  // Fail fast in production if DATABASE_URL is missing
+  if (process.env.NODE_ENV === 'production') {
+    const errorMsg = '❌ [DRIZZLE] DATABASE_URL is required in production';
+    console.error(errorMsg);
+    process.stderr.write(errorMsg + '\n');
+    process.exit(1);
+  }
 } else {
   // Validate DATABASE_URL format
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
-    console.error(`❌ Invalid DATABASE_URL format: ${dbUrl.substring(0, 50)}...`);
-    console.error(`❌ DATABASE_URL must start with 'postgresql://' or 'postgres://'`);
-    process.stderr.write(`❌ Invalid DATABASE_URL format: ${dbUrl.substring(0, 50)}...\n`);
-    process.stderr.write(`❌ DATABASE_URL must start with 'postgresql://' or 'postgres://'\n`);
-    // Don't throw - allow mock mode to continue
+    const errorMsg = `❌ [DRIZZLE] Invalid DATABASE_URL format: ${dbUrl.substring(0, 50)}...`;
+    const helpMsg = `❌ [DRIZZLE] DATABASE_URL must start with 'postgresql://' or 'postgres://'`;
+    console.error(errorMsg);
+    console.error(helpMsg);
+    process.stderr.write(errorMsg + '\n');
+    process.stderr.write(helpMsg + '\n');
+    
+    // Fail fast in production
+    if (process.env.NODE_ENV === 'production') {
+      const failMsg = '❌ [DRIZZLE] Failing fast in production due to invalid DATABASE_URL';
+      console.error(failMsg);
+      process.stderr.write(failMsg + '\n');
+      process.exit(1);
+    }
   } else {
-    console.log(`✅ DATABASE_URL format is valid`);
-    process.stdout.write(`✅ DATABASE_URL format is valid\n`);
+    const successMsg = `✅ [DRIZZLE] DATABASE_URL format is valid`;
+    console.log(successMsg);
+    process.stdout.write(successMsg + '\n');
   }
 }
 
