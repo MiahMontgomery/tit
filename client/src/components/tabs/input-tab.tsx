@@ -112,21 +112,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
     retry: false, // Don't retry - return empty array instead
   });
 
-  // Fetch memories for the project
-  const { data: projectMemories = [], isLoading: memoriesLoading, error: memoriesError } = useQuery({
-    queryKey: ['memories', projectId],
-    queryFn: async () => {
-      const response = await fetchApi(`/api/projects/${projectId}/memory?limit=20`);
-      if (!response.ok) {
-        // Return empty array on any error - backend now returns empty arrays
-        return [];
-      }
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
-    },
-    refetchInterval: 5000, // Less frequent updates
-    retry: false, // Don't retry - return empty array instead
-  });
+  // Note: memories query is defined later to avoid duplicate
 
   // Send task mutation
   const sendTaskMutation = useMutation({
@@ -262,37 +248,73 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   });
 
   // Fetch tasks
-  const { data: tasks = [] } = useQuery({
+  const { data: tasksData, isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks', projectId],
     queryFn: async () => {
-      const response = await fetchApi(`/api/projects/${projectId}/tasks`);
-      if (!response.ok) throw new Error('Failed to fetch tasks');
-      return response.json();
+      try {
+        const response = await fetchApi(`/api/projects/${projectId}/tasks`);
+        if (!response.ok) {
+          // Return empty array on error instead of throwing
+          return [];
+        }
+        const data = await response.json();
+        // Handle both { success: true, data: [...] } and direct array responses
+        return Array.isArray(data) ? data : (data.data || []);
+      } catch (error) {
+        console.error('[InputTab] Error fetching tasks:', error);
+        return [];
+      }
     },
     refetchInterval: 2000,
+    retry: false,
   });
+  const tasks = Array.isArray(tasksData) ? tasksData : [];
 
   // Fetch runs
-  const { data: runs = [] } = useQuery({
+  const { data: runsData, isLoading: runsLoading } = useQuery({
     queryKey: ['runs', projectId],
     queryFn: async () => {
-      const response = await fetchApi(`/api/projects/${projectId}/runs`);
-      if (!response.ok) throw new Error('Failed to fetch runs');
-      return response.json();
+      try {
+        const response = await fetchApi(`/api/projects/${projectId}/runs`);
+        if (!response.ok) {
+          // Return empty array on error instead of throwing
+          return [];
+        }
+        const data = await response.json();
+        // Handle both { success: true, data: [...] } and direct array responses
+        return Array.isArray(data) ? data : (data.data || []);
+      } catch (error) {
+        console.error('[InputTab] Error fetching runs:', error);
+        return [];
+      }
     },
     refetchInterval: 2000,
+    retry: false,
   });
+  const runs = Array.isArray(runsData) ? runsData : [];
 
-
-  const { data: memories = [] } = useQuery({
+  // Fetch memories for the project
+  const { data: memoriesData = [], isLoading: memoriesLoading } = useQuery({
     queryKey: ['memories', projectId],
     queryFn: async () => {
-      const response = await fetchApi(`/api/projects/${projectId}/memory`);
-      if (!response.ok) throw new Error('Failed to fetch memories');
-      return response.json();
+      try {
+        const response = await fetchApi(`/api/projects/${projectId}/memory?limit=20`);
+        if (!response.ok) {
+          // Return empty array on error instead of throwing
+          return [];
+        }
+        const data = await response.json();
+        // Handle both array and object responses
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('[InputTab] Error fetching memories:', error);
+        return [];
+      }
     },
-    refetchInterval: 2000,
+    refetchInterval: 5000, // Less frequent updates
+    retry: false, // Don't retry - return empty array instead
   });
+  const memories = Array.isArray(memoriesData) ? memoriesData : [];
 
   useEffect(() => {
     setLiveActions(liveActionsData);
@@ -615,7 +637,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   };
 
   // Show loading state
-  if (messagesLoading || memoriesLoading) {
+  if (messagesLoading || memoriesLoading || tasksLoading || runsLoading) {
     return (
       <div className="flex items-center justify-center h-64" style={{ backgroundColor: '#050505' }}>
         <div className="text-center">
