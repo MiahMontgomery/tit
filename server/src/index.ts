@@ -152,7 +152,7 @@ app.post("/api/projects", async (req, res, next) => {
           ok: false,
           error: 'Project name already exists',
           errorCode: 'ERR_DB_DUPLICATE',
-          message: `A project with name "${parsed.name || parsed.title}" already exists`,
+          message: `A project with name "${parsed.name}" already exists`,
           field: dbError.meta?.target?.[0] || 'name'
         });
       }
