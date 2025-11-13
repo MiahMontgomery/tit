@@ -1,6 +1,20 @@
 import { PrismaClient } from '@prisma/client';
 
-// Validate DATABASE_URL at module load time
+// CRITICAL: Log the DATABASE_URL source BEFORE Prisma loads anything
+// This helps debug if Prisma is loading a .env file that overrides environment variables
+if (process.env.NODE_ENV === 'production') {
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl) {
+    const masked = dbUrl.replace(/:([^:@]+)@/, ':****@');
+    console.log(`[PRISMA-INIT] DATABASE_URL from process.env (masked): ${masked.substring(0, 80)}...`);
+    process.stdout.write(`[PRISMA-INIT] DATABASE_URL from process.env (masked): ${masked.substring(0, 80)}...\n`);
+  } else {
+    console.warn('[PRISMA-INIT] DATABASE_URL not found in process.env');
+    process.stderr.write('[PRISMA-INIT] DATABASE_URL not found in process.env\n');
+  }
+}
+
+// Validate DATABASE_URL at module load time (BEFORE PrismaClient is instantiated)
 if (process.env.DATABASE_URL) {
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {

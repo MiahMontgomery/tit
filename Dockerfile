@@ -8,6 +8,11 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+
+# Remove any .env files to prevent Prisma from loading them in production
+# Prisma automatically loads .env files which can override environment variables
+RUN rm -f .env .env.local .env.*.local 2>/dev/null || true
+
 RUN npx prisma generate
 
 RUN npm run build
