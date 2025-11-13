@@ -117,7 +117,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   // Send task mutation
   const sendTaskMutation = useMutation({
     mutationFn: async (content: string) => {
-      console.log('[InputTab] Sending task:', { projectId, content });
+      console.log('[InputTab] mutationFn called - Sending task:', { projectId, content, contentLength: content.length });
       
       // Backend expects { goalId, type, payload } format
       // Convert user message to task format
@@ -127,34 +127,51 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         goalId: null // No specific goal for user messages
       };
       
-      console.log('[InputTab] Request body:', requestBody);
+      console.log('[InputTab] Request body:', JSON.stringify(requestBody));
       console.log('[InputTab] API URL will be:', `/api/projects/${projectId}/tasks`);
       
       try {
         const apiUrl = `/api/projects/${projectId}/tasks`;
-        console.log('[InputTab] Calling fetchApi with:', { method: 'POST', url: apiUrl, body: requestBody });
+        console.log('[InputTab] About to call fetchApi:', { method: 'POST', url: apiUrl });
         
-        const response = await fetchApi(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
+        // Add timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.error('[InputTab] Request timeout after 30 seconds');
+          controller.abort();
+        }, 30000);
         
-        console.log('[InputTab] Response received:', { status: response.status, statusText: response.statusText, ok: response.ok });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('[InputTab] Error response:', errorData);
-          throw new Error(errorData.error || errorData.message || `Failed to create task (${response.status})`);
+        try {
+          const response = await fetchApi(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          console.log('[InputTab] Response received:', { status: response.status, statusText: response.statusText, ok: response.ok, headers: Object.fromEntries(response.headers.entries()) });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('[InputTab] Error response:', errorData);
+            throw new Error(errorData.error || errorData.message || `Failed to create task (${response.status})`);
+          }
+          
+          const data = await response.json();
+          console.log('[InputTab] Success response:', data);
+          return data;
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Request timed out after 30 seconds');
+          }
+          throw fetchError;
         }
-        
-        const data = await response.json();
-        console.log('[InputTab] Success response:', data);
-        return data;
       } catch (error) {
         console.error('[InputTab] Task creation error:', error);
         if (error instanceof Error) {
-          console.error('[InputTab] Error details:', { message: error.message, stack: error.stack });
+          console.error('[InputTab] Error details:', { message: error.message, stack: error.stack, name: error.name });
         }
         throw error;
       }
@@ -328,8 +345,16 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   }, [liveActionsData]);
 
   const handleSendMessage = () => {
+    console.log('[InputTab] handleSendMessage called', { message: message.trim(), hasMessage: !!message.trim() });
     if (message.trim()) {
-      sendTaskMutation.mutate(message);
+      console.log('[InputTab] Calling sendTaskMutation.mutate');
+      try {
+        sendTaskMutation.mutate(message);
+      } catch (error) {
+        console.error('[InputTab] Error calling mutation:', error);
+      }
+    } else {
+      console.warn('[InputTab] Cannot send empty message');
     }
   };
 

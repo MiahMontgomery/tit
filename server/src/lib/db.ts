@@ -17,9 +17,41 @@ if (process.env.DATABASE_URL) {
       process.exit(1);
     }
   } else {
-    const successMsg = `✅ [PRISMA] DATABASE_URL format is valid`;
-    console.log(successMsg);
-    process.stdout.write(successMsg + '\n');
+    // Parse and validate the URL structure
+    try {
+      const url = new URL(dbUrl);
+      const database = url.pathname.slice(1); // Remove leading slash
+      
+      // Check for malformed database names (like containing connection strings)
+      if (database.includes('://') || database.includes('@') || database.includes('postgresql')) {
+        const errorMsg = `❌ [PRISMA] Invalid database name in DATABASE_URL: "${database}"`;
+        const helpMsg = `❌ [PRISMA] Database name appears to contain connection string fragments. Check your DATABASE_URL environment variable.`;
+        console.error(errorMsg);
+        console.error(helpMsg);
+        process.stderr.write(errorMsg + '\n');
+        process.stderr.write(helpMsg + '\n');
+        process.stderr.write(`❌ [PRISMA] Full URL (first 100 chars): ${dbUrl.substring(0, 100)}\n`);
+        
+        if (process.env.NODE_ENV === 'production') {
+          process.stderr.write('❌ [PRISMA] Failing fast in production due to malformed database name\n');
+          process.exit(1);
+        }
+      } else {
+        const successMsg = `✅ [PRISMA] DATABASE_URL format is valid (database: ${database || '(not specified)'})`;
+        console.log(successMsg);
+        process.stdout.write(successMsg + '\n');
+      }
+    } catch (parseError) {
+      const errorMsg = `❌ [PRISMA] Failed to parse DATABASE_URL: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`;
+      console.error(errorMsg);
+      process.stderr.write(errorMsg + '\n');
+      process.stderr.write(`❌ [PRISMA] URL (first 100 chars): ${dbUrl.substring(0, 100)}\n`);
+      
+      if (process.env.NODE_ENV === 'production') {
+        process.stderr.write('❌ [PRISMA] Failing fast in production due to unparseable DATABASE_URL\n');
+        process.exit(1);
+      }
+    }
   }
 } else {
   const warnMsg = `⚠️  [PRISMA] DATABASE_URL not set - Prisma will fail to connect`;

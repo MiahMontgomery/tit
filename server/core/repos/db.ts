@@ -16,7 +16,7 @@ if (!process.env.DATABASE_URL) {
     process.exit(1);
   }
 } else {
-  // Validate DATABASE_URL format
+  // Validate DATABASE_URL format and parse it
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
     const errorMsg = `❌ [DRIZZLE] Invalid DATABASE_URL format: ${dbUrl.substring(0, 50)}...`;
@@ -34,9 +34,41 @@ if (!process.env.DATABASE_URL) {
       process.exit(1);
     }
   } else {
-    const successMsg = `✅ [DRIZZLE] DATABASE_URL format is valid`;
-    console.log(successMsg);
-    process.stdout.write(successMsg + '\n');
+    // Parse and validate the URL structure
+    try {
+      const url = new URL(dbUrl);
+      const database = url.pathname.slice(1); // Remove leading slash
+      
+      // Check for malformed database names (like containing connection strings)
+      if (database.includes('://') || database.includes('@') || database.includes('postgresql')) {
+        const errorMsg = `❌ [DRIZZLE] Invalid database name in DATABASE_URL: "${database}"`;
+        const helpMsg = `❌ [DRIZZLE] Database name appears to contain connection string fragments. Check your DATABASE_URL environment variable.`;
+        console.error(errorMsg);
+        console.error(helpMsg);
+        process.stderr.write(errorMsg + '\n');
+        process.stderr.write(helpMsg + '\n');
+        process.stderr.write(`❌ [DRIZZLE] Full URL (first 100 chars): ${dbUrl.substring(0, 100)}\n`);
+        
+        if (process.env.NODE_ENV === 'production') {
+          process.stderr.write('❌ [DRIZZLE] Failing fast in production due to malformed database name\n');
+          process.exit(1);
+        }
+      } else {
+        const successMsg = `✅ [DRIZZLE] DATABASE_URL format is valid (database: ${database || '(not specified)'})`;
+        console.log(successMsg);
+        process.stdout.write(successMsg + '\n');
+      }
+    } catch (parseError) {
+      const errorMsg = `❌ [DRIZZLE] Failed to parse DATABASE_URL: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`;
+      console.error(errorMsg);
+      process.stderr.write(errorMsg + '\n');
+      process.stderr.write(`❌ [DRIZZLE] URL (first 100 chars): ${dbUrl.substring(0, 100)}\n`);
+      
+      if (process.env.NODE_ENV === 'production') {
+        process.stderr.write('❌ [DRIZZLE] Failing fast in production due to unparseable DATABASE_URL\n');
+        process.exit(1);
+      }
+    }
   }
 }
 

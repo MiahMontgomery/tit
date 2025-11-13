@@ -197,13 +197,26 @@ router.post("/", async (req, res, next) => {
     
     console.log(`[POST /api/projects/reiterate] Sending response to client`);
     process.stdout.write(`[POST /api/projects/reiterate] Sending response to client\n`);
+    console.log(`[POST /api/projects/reiterate] Response data:`, JSON.stringify({
+      ok: responseData.ok,
+      draftId: responseData.draft?.draftId,
+      version: responseData.draft?.version,
+      title: responseData.draft?.title
+    }));
     
-    // Ensure response is sent and flushed
+    // Set headers explicitly and send response
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache');
     res.status(201).json(responseData);
     
+    // Ensure response is flushed
+    if (res.flush) {
+      res.flush();
+    }
+    
     // Log after response is sent
-    console.log(`[POST /api/projects/reiterate] Response sent successfully`);
-    process.stdout.write(`[POST /api/projects/reiterate] Response sent successfully\n`);
+    console.log(`[POST /api/projects/reiterate] Response sent successfully (status: 201)`);
+    process.stdout.write(`[POST /api/projects/reiterate] Response sent successfully (status: 201)\n`);
   } catch (err: any) {
     console.error(`[POST /api/projects/reiterate] Error:`, err);
     

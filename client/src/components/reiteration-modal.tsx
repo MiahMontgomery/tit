@@ -68,6 +68,7 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
         const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
         
         try {
+          console.log('[ReiterationModal] Making request to /api/projects/reiterate');
           const response = await fetchApi('/api/projects/reiterate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -82,27 +83,54 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
           
           clearTimeout(timeoutId);
 
-          console.log('[ReiterationModal] Response received:', { status: response.status, ok: response.ok });
+          console.log('[ReiterationModal] Response received:', { 
+            status: response.status, 
+            statusText: response.statusText,
+            ok: response.ok,
+            headers: Object.fromEntries(response.headers.entries())
+          });
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             console.error('[ReiterationModal] Error response:', errorData);
-            throw new Error(errorData.error || `Failed to generate draft (${response.status})`);
+            throw new Error(errorData.error || errorData.message || `Failed to generate draft (${response.status})`);
           }
 
-          const data = await response.json();
-          console.log('[ReiterationModal] Draft data received:', { draftId: data.draft?.draftId, version: data.draft?.version });
+          console.log('[ReiterationModal] Parsing response JSON...');
+          const data = await response.json().catch((parseError) => {
+            console.error('[ReiterationModal] Failed to parse response JSON:', parseError);
+            throw new Error('Invalid response format from server');
+          });
+          
+          console.log('[ReiterationModal] Draft data received:', { 
+            ok: data.ok,
+            draftId: data.draft?.draftId, 
+            version: data.draft?.version,
+            hasDraft: !!data.draft,
+            dataKeys: Object.keys(data)
+          });
           
           if (!data.draft) {
+            console.error('[ReiterationModal] Response missing draft:', data);
             throw new Error('Invalid response: missing draft data');
           }
           
+          console.log('[ReiterationModal] Setting draft and updating state to draft_ready');
           setDraft(data.draft);
           setState('draft_ready');
+          console.log('[ReiterationModal] State updated successfully');
         } catch (fetchError: any) {
           clearTimeout(timeoutId);
+          console.error('[ReiterationModal] Fetch error:', {
+            name: fetchError.name,
+            message: fetchError.message,
+            stack: fetchError.stack
+          });
           if (fetchError.name === 'AbortError') {
             throw new Error('Request timed out after 3 minutes. The plan generation is taking longer than expected.');
+          }
+          if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('network')) {
+            throw new Error('Network error: Could not reach server. Please check your connection and try again.');
           }
           throw fetchError;
         }
