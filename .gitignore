@@ -5,3 +5,8 @@ server/public
 vite.config.ts.*
 *.tar.gz
 /generated/prisma
+
+# Environment files - should not be committed
+.env
+.env.local
+.env.*.local
