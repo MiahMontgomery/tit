@@ -19,8 +19,23 @@ if (process.env.DATABASE_URL) {
   } else {
     // Parse and validate the URL structure
     try {
+      // Log the actual DATABASE_URL value (masked for security)
+      const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ':****@'); // Mask password
+      console.log(`[PRISMA] Validating DATABASE_URL (masked): ${maskedUrl.substring(0, 80)}...`);
+      process.stdout.write(`[PRISMA] Validating DATABASE_URL (masked): ${maskedUrl.substring(0, 80)}...\n`);
+      
       const url = new URL(dbUrl);
       const database = url.pathname.slice(1); // Remove leading slash
+      
+      // Log parsed components for debugging
+      console.log(`[PRISMA] Parsed URL components:`, {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port,
+        pathname: url.pathname,
+        database: database
+      });
+      process.stdout.write(`[PRISMA] Parsed database name: "${database}"\n`);
       
       // Check for malformed database names (like containing connection strings)
       if (database.includes('://') || database.includes('@') || database.includes('postgresql')) {
@@ -31,6 +46,8 @@ if (process.env.DATABASE_URL) {
         process.stderr.write(errorMsg + '\n');
         process.stderr.write(helpMsg + '\n');
         process.stderr.write(`❌ [PRISMA] Full URL (first 100 chars): ${dbUrl.substring(0, 100)}\n`);
+        process.stderr.write(`❌ [PRISMA] Parsed database name length: ${database.length}\n`);
+        process.stderr.write(`❌ [PRISMA] Database name starts with: "${database.substring(0, 50)}"\n`);
         
         if (process.env.NODE_ENV === 'production') {
           process.stderr.write('❌ [PRISMA] Failing fast in production due to malformed database name\n');

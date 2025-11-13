@@ -15,50 +15,67 @@ if (!process.env.DATABASE_URL) {
     process.stderr.write(errorMsg + '\n');
     process.exit(1);
   }
-} else {
-  // Validate DATABASE_URL format and parse it
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
-    const errorMsg = `❌ [DRIZZLE] Invalid DATABASE_URL format: ${dbUrl.substring(0, 50)}...`;
-    const helpMsg = `❌ [DRIZZLE] DATABASE_URL must start with 'postgresql://' or 'postgres://'`;
-    console.error(errorMsg);
-    console.error(helpMsg);
-    process.stderr.write(errorMsg + '\n');
-    process.stderr.write(helpMsg + '\n');
-    
-    // Fail fast in production
-    if (process.env.NODE_ENV === 'production') {
-      const failMsg = '❌ [DRIZZLE] Failing fast in production due to invalid DATABASE_URL';
-      console.error(failMsg);
-      process.stderr.write(failMsg + '\n');
-      process.exit(1);
-    }
   } else {
-    // Parse and validate the URL structure
-    try {
-      const url = new URL(dbUrl);
-      const database = url.pathname.slice(1); // Remove leading slash
+    // Validate DATABASE_URL format and parse it
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
+      const errorMsg = `❌ [DRIZZLE] Invalid DATABASE_URL format: ${dbUrl.substring(0, 50)}...`;
+      const helpMsg = `❌ [DRIZZLE] DATABASE_URL must start with 'postgresql://' or 'postgres://'`;
+      console.error(errorMsg);
+      console.error(helpMsg);
+      process.stderr.write(errorMsg + '\n');
+      process.stderr.write(helpMsg + '\n');
       
-      // Check for malformed database names (like containing connection strings)
-      if (database.includes('://') || database.includes('@') || database.includes('postgresql')) {
-        const errorMsg = `❌ [DRIZZLE] Invalid database name in DATABASE_URL: "${database}"`;
-        const helpMsg = `❌ [DRIZZLE] Database name appears to contain connection string fragments. Check your DATABASE_URL environment variable.`;
-        console.error(errorMsg);
-        console.error(helpMsg);
-        process.stderr.write(errorMsg + '\n');
-        process.stderr.write(helpMsg + '\n');
-        process.stderr.write(`❌ [DRIZZLE] Full URL (first 100 chars): ${dbUrl.substring(0, 100)}\n`);
-        
-        if (process.env.NODE_ENV === 'production') {
-          process.stderr.write('❌ [DRIZZLE] Failing fast in production due to malformed database name\n');
-          process.exit(1);
-        }
-      } else {
-        const successMsg = `✅ [DRIZZLE] DATABASE_URL format is valid (database: ${database || '(not specified)'})`;
-        console.log(successMsg);
-        process.stdout.write(successMsg + '\n');
+      // Fail fast in production
+      if (process.env.NODE_ENV === 'production') {
+        const failMsg = '❌ [DRIZZLE] Failing fast in production due to invalid DATABASE_URL';
+        console.error(failMsg);
+        process.stderr.write(failMsg + '\n');
+        process.exit(1);
       }
-    } catch (parseError) {
+    } else {
+      // Parse and validate the URL structure
+      try {
+        // Log the actual DATABASE_URL value (masked for security)
+        const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ':****@'); // Mask password
+        console.log(`[DRIZZLE] Validating DATABASE_URL (masked): ${maskedUrl.substring(0, 80)}...`);
+        process.stdout.write(`[DRIZZLE] Validating DATABASE_URL (masked): ${maskedUrl.substring(0, 80)}...\n`);
+        
+        const url = new URL(dbUrl);
+        const database = url.pathname.slice(1); // Remove leading slash
+        
+        // Log parsed components for debugging
+        console.log(`[DRIZZLE] Parsed URL components:`, {
+          protocol: url.protocol,
+          hostname: url.hostname,
+          port: url.port,
+          pathname: url.pathname,
+          database: database
+        });
+        process.stdout.write(`[DRIZZLE] Parsed database name: "${database}"\n`);
+        
+        // Check for malformed database names (like containing connection strings)
+        if (database.includes('://') || database.includes('@') || database.includes('postgresql')) {
+          const errorMsg = `❌ [DRIZZLE] Invalid database name in DATABASE_URL: "${database}"`;
+          const helpMsg = `❌ [DRIZZLE] Database name appears to contain connection string fragments. Check your DATABASE_URL environment variable.`;
+          console.error(errorMsg);
+          console.error(helpMsg);
+          process.stderr.write(errorMsg + '\n');
+          process.stderr.write(helpMsg + '\n');
+          process.stderr.write(`❌ [DRIZZLE] Full URL (first 100 chars): ${dbUrl.substring(0, 100)}\n`);
+          process.stderr.write(`❌ [DRIZZLE] Parsed database name length: ${database.length}\n`);
+          process.stderr.write(`❌ [DRIZZLE] Database name starts with: "${database.substring(0, 50)}"\n`);
+          
+          if (process.env.NODE_ENV === 'production') {
+            process.stderr.write('❌ [DRIZZLE] Failing fast in production due to malformed database name\n');
+            process.exit(1);
+          }
+        } else {
+          const successMsg = `✅ [DRIZZLE] DATABASE_URL format is valid (database: ${database || '(not specified)'})`;
+          console.log(successMsg);
+          process.stdout.write(successMsg + '\n');
+        }
+      } catch (parseError) {
       const errorMsg = `❌ [DRIZZLE] Failed to parse DATABASE_URL: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`;
       console.error(errorMsg);
       process.stderr.write(errorMsg + '\n');
