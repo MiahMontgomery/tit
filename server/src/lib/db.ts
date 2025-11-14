@@ -52,12 +52,25 @@ if (process.env.DATABASE_URL) {
       process.stdout.write(`[PRISMA] Parsed database name: "${database}"\n`);
       process.stdout.write(`[PRISMA] Database name length: ${database.length}\n`);
       
-      // If database name is suspiciously long, log the full URL structure for debugging
+      // If database name is suspiciously long, try to extract the correct database name
       if (database.length > 50) {
         process.stderr.write(`[PRISMA] WARNING: Database name is unusually long (${database.length} chars)\n`);
         process.stderr.write(`[PRISMA] This suggests the DATABASE_URL in Render may be malformed\n`);
         process.stderr.write(`[PRISMA] Expected format: postgresql://user:pass@host:port/database_name\n`);
         process.stderr.write(`[PRISMA] The database_name should be a simple name like 'titan_db', not a connection string\n`);
+        
+        // Try to detect if the database name contains a connection string and extract the real database name
+        // Pattern: database_name might be like "titan_db_bi9npostgresql://..." 
+        // We need to find where the actual database name ends
+        const connectionStringMatch = database.match(/^([^:]+)postgresql:\/\//);
+        if (connectionStringMatch) {
+          const realDbName = connectionStringMatch[1].replace(/^titan_db_bi9n/, 'titan_db');
+          process.stderr.write(`[PRISMA] DETECTED: Database name appears to be concatenated with connection string\n`);
+          process.stderr.write(`[PRISMA] Extracted potential real database name: "${realDbName}"\n`);
+          process.stderr.write(`[PRISMA] ACTION REQUIRED: Update DATABASE_URL in Render to end with /${realDbName}\n`);
+          process.stderr.write(`[PRISMA] Current value ends with: /${database.substring(0, 50)}...\n`);
+          process.stderr.write(`[PRISMA] Should end with: /${realDbName}\n`);
+        }
       }
       
       // Check for malformed database names (like containing connection strings)
