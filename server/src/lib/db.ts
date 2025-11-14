@@ -50,6 +50,15 @@ if (process.env.DATABASE_URL) {
         database: database
       });
       process.stdout.write(`[PRISMA] Parsed database name: "${database}"\n`);
+      process.stdout.write(`[PRISMA] Database name length: ${database.length}\n`);
+      
+      // If database name is suspiciously long, log the full URL structure for debugging
+      if (database.length > 50) {
+        process.stderr.write(`[PRISMA] WARNING: Database name is unusually long (${database.length} chars)\n`);
+        process.stderr.write(`[PRISMA] This suggests the DATABASE_URL in Render may be malformed\n`);
+        process.stderr.write(`[PRISMA] Expected format: postgresql://user:pass@host:port/database_name\n`);
+        process.stderr.write(`[PRISMA] The database_name should be a simple name like 'titan_db', not a connection string\n`);
+      }
       
       // Check for malformed database names (like containing connection strings)
       if (database.includes('://') || database.includes('@') || database.includes('postgresql')) {
