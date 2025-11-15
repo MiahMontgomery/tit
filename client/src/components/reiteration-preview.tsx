@@ -335,6 +335,15 @@ export function ReiterationPreview({ draft }: ReiterationPreviewProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {(!draft.resourcesAndGaps.hardware || draft.resourcesAndGaps.hardware.length === 0) &&
+             (!draft.resourcesAndGaps.infrastructure || draft.resourcesAndGaps.infrastructure.length === 0) &&
+             (!draft.resourcesAndGaps.skills || draft.resourcesAndGaps.skills.length === 0) &&
+             (!draft.resourcesAndGaps.other || draft.resourcesAndGaps.other.length === 0) ? (
+              <p className="text-sm" style={{ color: '#888888' }}>
+                Resources and gaps analysis not available in this draft.
+              </p>
+            ) : (
+              <>
             {draft.resourcesAndGaps.hardware && draft.resourcesAndGaps.hardware.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#e0e0e0' }}>
@@ -386,12 +395,14 @@ export function ReiterationPreview({ draft }: ReiterationPreviewProps) {
                 </ul>
               </div>
             )}
+              </>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Assumptions */}
-      {draft.assumptions && draft.assumptions.length > 0 && (
+      {draft.assumptions && Array.isArray(draft.assumptions) && draft.assumptions.length > 0 && (
         <Card style={{ backgroundColor: '#0f0f0f', borderColor: '#333333' }}>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e0e0e0' }}>
@@ -410,7 +421,7 @@ export function ReiterationPreview({ draft }: ReiterationPreviewProps) {
       )}
 
       {/* Questions for User */}
-      {draft.questionsForUser && draft.questionsForUser.length > 0 && (
+      {draft.questionsForUser && Array.isArray(draft.questionsForUser) && draft.questionsForUser.length > 0 && (
         <Card style={{ backgroundColor: '#0f0f0f', borderColor: '#40e0d0' }}>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e0e0e0' }}>

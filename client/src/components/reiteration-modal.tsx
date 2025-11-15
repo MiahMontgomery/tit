@@ -141,7 +141,14 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
             draftId: data.draft?.draftId, 
             version: data.draft?.version,
             hasDraft: !!data.draft,
-            dataKeys: Object.keys(data)
+            dataKeys: Object.keys(data),
+            hasResourcesAndGaps: !!data.draft?.resourcesAndGaps,
+            resourcesAndGapsKeys: data.draft?.resourcesAndGaps ? Object.keys(data.draft.resourcesAndGaps) : [],
+            hardwareCount: data.draft?.resourcesAndGaps?.hardware?.length || 0,
+            infrastructureCount: data.draft?.resourcesAndGaps?.infrastructure?.length || 0,
+            skillsCount: data.draft?.resourcesAndGaps?.skills?.length || 0,
+            assumptionsCount: data.draft?.assumptions?.length || 0,
+            questionsCount: data.draft?.questionsForUser?.length || 0,
           });
           
           if (!data.draft) {
@@ -150,6 +157,7 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
           }
           
           console.log('[ReiterationModal] Setting draft and updating state to draft_ready');
+          console.log('[ReiterationModal] Full draft object:', JSON.stringify(data.draft, null, 2));
           setDraft(data.draft);
           setState('draft_ready');
           console.log('[ReiterationModal] State updated successfully');

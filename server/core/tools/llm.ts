@@ -265,16 +265,20 @@ RETURN STRICT JSON with this exact structure:
     }
   ],
   "resourcesAndGaps": {
-    "hardware": ["List specific hardware needs: GPUs, cameras, sensors, actuators, etc."],
-    "infrastructure": ["List infrastructure needs: cloud services, APIs, databases, CDNs, etc."],
-    "skills": ["List skills/qualifications needed: programming languages, frameworks, domain expertise, etc."],
-    "other": ["List other resources: partnerships, regulatory approvals, access to services, etc."]
+    "hardware": ["Specific item 1 (e.g., 'NVIDIA RTX 4090 GPU for training')", "Specific item 2", "etc."],
+    "infrastructure": ["Specific item 1 (e.g., 'AWS S3 bucket for data storage')", "Specific item 2", "etc."],
+    "skills": ["Specific skill 1 (e.g., 'Python programming')", "Specific skill 2", "etc."],
+    "other": ["Specific resource 1 (e.g., 'Access to customer database API')", "Specific resource 2", "etc."]
   },
   "assumptions": [
-    "List explicit assumptions you're making about the user's situation, resources, or goals"
+    "Specific assumption 1 (e.g., 'User has access to cloud computing resources')",
+    "Specific assumption 2",
+    "etc."
   ],
   "questionsForUser": [
-    "List specific clarifying questions that would help you plan better"
+    "Specific question 1 (e.g., 'What is your budget for hardware purchases?')",
+    "Specific question 2",
+    "etc."
   ]
 }
 
@@ -287,12 +291,67 @@ CRITICAL REQUIREMENTS:
 - If context is minimal, ask intelligent clarifying questions in the narrative
 - All content must be project-specific, not generic
 - Prominent features should be listed AFTER the narrative in point form style within the JSON structure
-- Be conversational but professional - like a senior architect explaining the plan`;
+- Be conversational but professional - like a senior architect explaining the plan
+
+IMPORTANT FOR resourcesAndGaps, assumptions, and questionsForUser:
+- DO NOT use placeholder text like "List specific hardware needs" or "etc."
+- Provide ACTUAL, SPECIFIC items based on the project type
+- For hardware: List real hardware items this project would need (GPUs, cameras, sensors, etc.)
+- For infrastructure: List real services/APIs this project would need (AWS, Stripe API, etc.)
+- For skills: List real skills needed (Python, React, ROS, etc.)
+- For assumptions: State what you're actually assuming about the user's situation
+- For questionsForUser: Ask real, specific questions that would help you plan better
+- If a category doesn't apply, use an empty array [] instead of placeholder text`;
 
     const response = await this.generateText(prompt, "openai/gpt-4o-mini", 8000);
     
     try {
       const parsed = JSON.parse(response.content);
+      
+      // Log what the LLM returned to help debug
+      console.log(`[LLM] Parsed draft structure:`, {
+        hasResourcesAndGaps: !!parsed.resourcesAndGaps,
+        resourcesAndGapsType: typeof parsed.resourcesAndGaps,
+        resourcesAndGapsKeys: parsed.resourcesAndGaps ? Object.keys(parsed.resourcesAndGaps) : [],
+        hardwareCount: parsed.resourcesAndGaps?.hardware?.length || 0,
+        infrastructureCount: parsed.resourcesAndGaps?.infrastructure?.length || 0,
+        skillsCount: parsed.resourcesAndGaps?.skills?.length || 0,
+        assumptionsCount: parsed.assumptions?.length || 0,
+        questionsCount: parsed.questionsForUser?.length || 0,
+      });
+      
+      // Helper to filter out placeholder text
+      const filterPlaceholders = (arr: any[]): string[] => {
+        if (!Array.isArray(arr)) return [];
+        return arr
+          .filter((item: any) => {
+            const text = typeof item === 'string' ? item : String(item);
+            // Filter out placeholder text patterns
+            return !text.toLowerCase().includes('list specific') &&
+                   !text.toLowerCase().includes('specific item') &&
+                   !text.toLowerCase().includes('specific skill') &&
+                   !text.toLowerCase().includes('specific resource') &&
+                   !text.toLowerCase().includes('specific assumption') &&
+                   !text.toLowerCase().includes('specific question') &&
+                   !text.toLowerCase().includes('etc.') &&
+                   text.trim().length > 0;
+          })
+          .map((item: any) => typeof item === 'string' ? item : String(item));
+      };
+      
+      // Process resourcesAndGaps
+      const resourcesAndGaps = parsed.resourcesAndGaps ? {
+        hardware: filterPlaceholders(parsed.resourcesAndGaps.hardware || []),
+        infrastructure: filterPlaceholders(parsed.resourcesAndGaps.infrastructure || []),
+        skills: filterPlaceholders(parsed.resourcesAndGaps.skills || []),
+        other: filterPlaceholders(parsed.resourcesAndGaps.other || [])
+      } : {
+        hardware: [],
+        infrastructure: [],
+        skills: [],
+        other: []
+      };
+      
       return {
         narrative: parsed.narrative || "Project plan pending review.",
         prominentFeatures: Array.isArray(parsed.prominentFeatures) ? parsed.prominentFeatures : [],
@@ -302,14 +361,9 @@ CRITICAL REQUIREMENTS:
         dependencies: Array.isArray(parsed.dependencies) ? parsed.dependencies : [],
         instrumentation: Array.isArray(parsed.instrumentation) ? parsed.instrumentation : [],
         acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria) ? parsed.acceptanceCriteria : [],
-        resourcesAndGaps: parsed.resourcesAndGaps || {
-          hardware: [],
-          infrastructure: [],
-          skills: [],
-          other: []
-        },
-        assumptions: Array.isArray(parsed.assumptions) ? parsed.assumptions : [],
-        questionsForUser: Array.isArray(parsed.questionsForUser) ? parsed.questionsForUser : []
+        resourcesAndGaps,
+        assumptions: filterPlaceholders(parsed.assumptions || []),
+        questionsForUser: filterPlaceholders(parsed.questionsForUser || [])
       };
     } catch (error) {
       console.error("Failed to parse reiteration draft:", error);

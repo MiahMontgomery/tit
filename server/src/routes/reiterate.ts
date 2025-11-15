@@ -234,11 +234,22 @@ router.post("/", async (req, res, next) => {
     console.log(`[POST /api/projects/reiterate] Draft v${nextVersion} created (ID: ${savedDraft.id}), Status: 201`);
     process.stdout.write(`[POST /api/projects/reiterate] Draft v${nextVersion} created (ID: ${savedDraft.id}), Status: 201\n`);
     
-    // Extract new fields from context if stored there
+    // Extract new fields from context if stored there, or use draft directly
     const contextData = savedDraft.context as any || {};
     const resourcesAndGaps = contextData.resourcesAndGaps || draft.resourcesAndGaps || { hardware: [], infrastructure: [], skills: [], other: [] };
     const assumptions = contextData.assumptions || draft.assumptions || [];
     const questionsForUser = contextData.questionsForUser || draft.questionsForUser || [];
+    
+    // Log what we're sending to help debug
+    console.log(`[POST /api/projects/reiterate] Response includes:`, {
+      hasResourcesAndGaps: !!resourcesAndGaps,
+      resourcesAndGapsKeys: resourcesAndGaps ? Object.keys(resourcesAndGaps) : [],
+      hardwareCount: resourcesAndGaps?.hardware?.length || 0,
+      infrastructureCount: resourcesAndGaps?.infrastructure?.length || 0,
+      skillsCount: resourcesAndGaps?.skills?.length || 0,
+      assumptionsCount: assumptions?.length || 0,
+      questionsCount: questionsForUser?.length || 0,
+    });
     
     const responseData = {
       ok: true,
