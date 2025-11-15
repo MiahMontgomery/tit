@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, AlertTriangle, FileText, Target, Shield, Link as LinkIcon, BarChart3 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, FileText, Target, Shield, Link as LinkIcon, BarChart3, Cpu, Cloud, GraduationCap, HelpCircle, Lightbulb } from 'lucide-react';
 
 interface ReiterationDraft {
   draftId: string;
@@ -16,6 +16,14 @@ interface ReiterationDraft {
   dependencies?: any[];
   instrumentation?: any[];
   acceptanceCriteria: any[];
+  resourcesAndGaps?: {
+    hardware: string[];
+    infrastructure: string[];
+    skills: string[];
+    other: string[];
+  };
+  assumptions?: string[];
+  questionsForUser?: string[];
 }
 
 interface ReiterationPreviewProps {
@@ -313,6 +321,112 @@ export function ReiterationPreview({ draft }: ReiterationPreviewProps) {
                 )}
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Resources & Gaps */}
+      {draft.resourcesAndGaps && (
+        <Card style={{ backgroundColor: '#0f0f0f', borderColor: '#333333' }}>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e0e0e0' }}>
+              <Cpu className="h-5 w-5" style={{ color: '#40e0d0' }} />
+              Resources & Gaps
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {draft.resourcesAndGaps.hardware && draft.resourcesAndGaps.hardware.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#e0e0e0' }}>
+                  <Cpu className="h-4 w-4" style={{ color: '#40e0d0' }} />
+                  Hardware Needs
+                </h4>
+                <ul className="list-disc list-inside space-y-1">
+                  {draft.resourcesAndGaps.hardware.map((item: string, idx: number) => (
+                    <li key={idx} className="text-sm" style={{ color: '#c0c0c0' }}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {draft.resourcesAndGaps.infrastructure && draft.resourcesAndGaps.infrastructure.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#e0e0e0' }}>
+                  <Cloud className="h-4 w-4" style={{ color: '#40e0d0' }} />
+                  Infrastructure Needs
+                </h4>
+                <ul className="list-disc list-inside space-y-1">
+                  {draft.resourcesAndGaps.infrastructure.map((item: string, idx: number) => (
+                    <li key={idx} className="text-sm" style={{ color: '#c0c0c0' }}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {draft.resourcesAndGaps.skills && draft.resourcesAndGaps.skills.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#e0e0e0' }}>
+                  <GraduationCap className="h-4 w-4" style={{ color: '#40e0d0' }} />
+                  Skills/Qualifications Needed
+                </h4>
+                <ul className="list-disc list-inside space-y-1">
+                  {draft.resourcesAndGaps.skills.map((item: string, idx: number) => (
+                    <li key={idx} className="text-sm" style={{ color: '#c0c0c0' }}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {draft.resourcesAndGaps.other && draft.resourcesAndGaps.other.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2" style={{ color: '#e0e0e0' }}>
+                  Other Resources
+                </h4>
+                <ul className="list-disc list-inside space-y-1">
+                  {draft.resourcesAndGaps.other.map((item: string, idx: number) => (
+                    <li key={idx} className="text-sm" style={{ color: '#c0c0c0' }}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Assumptions */}
+      {draft.assumptions && draft.assumptions.length > 0 && (
+        <Card style={{ backgroundColor: '#0f0f0f', borderColor: '#333333' }}>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e0e0e0' }}>
+              <Lightbulb className="h-5 w-5" style={{ color: '#fbbf24' }} />
+              Assumptions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc list-inside space-y-2">
+              {draft.assumptions.map((assumption: string, idx: number) => (
+                <li key={idx} className="text-sm" style={{ color: '#c0c0c0' }}>{assumption}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Questions for User */}
+      {draft.questionsForUser && draft.questionsForUser.length > 0 && (
+        <Card style={{ backgroundColor: '#0f0f0f', borderColor: '#40e0d0' }}>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e0e0e0' }}>
+              <HelpCircle className="h-5 w-5" style={{ color: '#40e0d0' }} />
+              Questions for You
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm mb-3" style={{ color: '#888888' }}>
+              The AI needs clarification on these points to plan better:
+            </p>
+            <ul className="list-disc list-inside space-y-2">
+              {draft.questionsForUser.map((question: string, idx: number) => (
+                <li key={idx} className="text-sm" style={{ color: '#c0c0c0' }}>{question}</li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       )}

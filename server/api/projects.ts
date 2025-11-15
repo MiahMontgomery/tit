@@ -48,7 +48,17 @@ const createTaskSchema = z.object({
   payload: z.record(z.any()).default({})
 });
 
-// POST /api/projects - Create a new project
+/**
+ * POST /api/projects - Create a new project
+ * 
+ * This endpoint is intentionally AI-independent and non-blocking.
+ * It creates a project row in the database with basic fields (name, description).
+ * 
+ * If a charter is provided, it creates the charter in the same transaction.
+ * 
+ * AI planning, if re-enabled, must always be optional and non-blocking.
+ * Any AI-related operations should happen asynchronously after project creation.
+ */
 router.post("/", async (req, res) => {
   const requestId = (req as any).requestId || 'NO-ID';
   try {
@@ -65,9 +75,15 @@ router.post("/", async (req, res) => {
       hasPrompt: !!prompt
     });
 
+    // Check if AI planning is disabled via feature flag
+    const planningDisabled = process.env.DISABLE_AI_PLANNING === "true";
+    if (planningDisabled && charter) {
+      console.log(`[${requestId}] [POST /api/projects] AI planning disabled, creating project without charter`);
+    }
+
     let project;
     try {
-      if (charter) {
+      if (charter && !planningDisabled) {
         // Create project and charter in a single transaction
         console.log(`[${requestId}] [POST /api/projects] Creating project with charter in transaction`);
         project = await prisma.$transaction(async (tx) => {
@@ -102,12 +118,13 @@ router.post("/", async (req, res) => {
         });
         console.log(`[${requestId}] [POST /api/projects] Project ${project.id} created successfully with charter`);
       } else {
-        // No charter, use projectsRepo for backward compatibility
-        console.log(`[${requestId}] [POST /api/projects] Creating project without charter`);
-        project = await projectsRepo.create({
-          name,
-          prompt: prompt || "",
-          description: description || ""
+        // Simple project creation - no charter, no AI planning
+        console.log(`[${requestId}] [POST /api/projects] Creating simple project (no charter)`);
+        project = await prisma.project.create({
+          data: {
+            name: name || 'Untitled Project',
+            description: description || null,
+          }
         });
         console.log(`[${requestId}] [POST /api/projects] Project ${project.id} created successfully`);
       }
@@ -121,8 +138,9 @@ router.post("/", async (req, res) => {
           id: project.id,
           name: project.name,
           description: project.description,
-          hasCharter: !!charter
-        }
+          hasCharter: !!charter && !planningDisabled
+        },
+        planningStatus: planningDisabled ? "disabled" : (charter ? "included" : "skipped")
       });
 
     } catch (dbError: any) {

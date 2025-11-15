@@ -40,9 +40,9 @@ export class LLMClient {
     }
 
     try {
-      // Add timeout using AbortController
+      // Add timeout using AbortController - match endpoint timeout (2.5 min)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+      const timeoutId = setTimeout(() => controller.abort(), 150000); // 2.5 minute timeout to match endpoint
       
       console.log(`[LLM] Starting request to ${this.baseUrl}/chat/completions with model ${model}, maxTokens: ${maxTokens}`);
       
@@ -159,6 +159,14 @@ Provide a concise description that explains what needs to be done.`;
     dependencies: any[];
     instrumentation: any[];
     acceptanceCriteria: any[];
+    resourcesAndGaps: {
+      hardware: string[];
+      infrastructure: string[];
+      skills: string[];
+      other: string[];
+    };
+    assumptions: string[];
+    questionsForUser: string[];
   }> {
     const { title, context, previousVersion, userEdits } = params;
     
@@ -184,11 +192,17 @@ YOUR TASK:
    - Best way (optimal balance)
    - Cheapest way (budget-friendly)
    - Fastest way (rapid deployment)
-4. **Ask clarifying questions** if critical information is missing
-5. **Recommend technology stack** and architecture based on project type
-6. **Identify risks** specific to this project type
-7. **Suggest dependencies** (APIs, services, tools, hardware)
-8. **Design milestones** that make sense for this specific project
+4. **Explicitly identify resources and gaps**:
+   - Hardware needs (GPUs, storage, cameras, actuators, etc.)
+   - Infrastructure needs (cloud services, APIs, databases, etc.)
+   - Skills/qualifications needed (programming languages, frameworks, domain expertise, etc.)
+   - Other resources (access to services, partnerships, regulatory approvals, etc.)
+5. **State your assumptions** clearly - what are you assuming about the user's situation, resources, or goals?
+6. **Ask clarifying questions** - what critical information is missing that would help you plan better?
+7. **Recommend technology stack** and architecture based on project type
+8. **Identify risks** specific to this project type
+9. **Suggest dependencies** (APIs, services, tools, hardware)
+10. **Design milestones** that make sense for this specific project
 
 RETURN STRICT JSON with this exact structure:
 {
@@ -249,6 +263,18 @@ RETURN STRICT JSON with this exact structure:
       "type": "functional|non-functional|performance|security|usability",
       "priority": "must-have|should-have|nice-to-have"
     }
+  ],
+  "resourcesAndGaps": {
+    "hardware": ["List specific hardware needs: GPUs, cameras, sensors, actuators, etc."],
+    "infrastructure": ["List infrastructure needs: cloud services, APIs, databases, CDNs, etc."],
+    "skills": ["List skills/qualifications needed: programming languages, frameworks, domain expertise, etc."],
+    "other": ["List other resources: partnerships, regulatory approvals, access to services, etc."]
+  },
+  "assumptions": [
+    "List explicit assumptions you're making about the user's situation, resources, or goals"
+  ],
+  "questionsForUser": [
+    "List specific clarifying questions that would help you plan better"
   ]
 }
 
@@ -275,7 +301,15 @@ CRITICAL REQUIREMENTS:
         risks: Array.isArray(parsed.risks) ? parsed.risks : [],
         dependencies: Array.isArray(parsed.dependencies) ? parsed.dependencies : [],
         instrumentation: Array.isArray(parsed.instrumentation) ? parsed.instrumentation : [],
-        acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria) ? parsed.acceptanceCriteria : []
+        acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria) ? parsed.acceptanceCriteria : [],
+        resourcesAndGaps: parsed.resourcesAndGaps || {
+          hardware: [],
+          infrastructure: [],
+          skills: [],
+          other: []
+        },
+        assumptions: Array.isArray(parsed.assumptions) ? parsed.assumptions : [],
+        questionsForUser: Array.isArray(parsed.questionsForUser) ? parsed.questionsForUser : []
       };
     } catch (error) {
       console.error("Failed to parse reiteration draft:", error);
@@ -289,7 +323,15 @@ CRITICAL REQUIREMENTS:
         risks: [{ risk: "Scope creep", mitigation: "Regular reviews", severity: "medium" }],
         dependencies: [],
         instrumentation: [],
-        acceptanceCriteria: [{ criterion: "Project meets requirements", type: "functional" }]
+        acceptanceCriteria: [{ criterion: "Project meets requirements", type: "functional" }],
+        resourcesAndGaps: {
+          hardware: [],
+          infrastructure: [],
+          skills: [],
+          other: []
+        },
+        assumptions: [],
+        questionsForUser: []
       };
     }
   }

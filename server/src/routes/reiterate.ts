@@ -85,30 +85,67 @@ router.post("/", async (req, res, next) => {
       }
     }
 
-    // Generate draft using LLM
+    // Check if LLM API key is configured
+    if (!process.env.OPENROUTER_API_KEY) {
+      console.error(`[POST /api/projects/reiterate] OPENROUTER_API_KEY not configured`);
+      process.stderr.write(`[POST /api/projects/reiterate] OPENROUTER_API_KEY not configured\n`);
+      return res.status(500).json({
+        ok: false,
+        error: 'AI service not configured',
+        errorCode: 'ERR_LLM_NOT_CONFIGURED',
+        message: 'AI planning is not available. Please use "Create Project" to create a project without AI planning, or configure OPENROUTER_API_KEY in the environment.'
+      });
+    }
+
+    // Generate draft using LLM with timeout
     console.log(`[POST /api/projects/reiterate] Generating draft v${nextVersion} for "${parsed.title}"`);
     process.stdout.write(`[POST /api/projects/reiterate] Generating draft v${nextVersion} for "${parsed.title}"\n`);
     
     let draft;
     try {
       const startTime = Date.now();
-      draft = await llmClient.generateReiterationDraft({
+      
+      // Add timeout wrapper - LLM call should complete within 2.5 minutes
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('LLM generation timed out after 2.5 minutes')), 150000);
+      });
+      
+      const draftPromise = llmClient.generateReiterationDraft({
         title: parsed.title,
         context: parsed.context,
         previousVersion,
         userEdits: parsed.userEdits,
       });
+      
+      draft = await Promise.race([draftPromise, timeoutPromise]) as any;
+      
       const duration = Date.now() - startTime;
       console.log(`[POST /api/projects/reiterate] Draft generated in ${duration}ms`);
       process.stdout.write(`[POST /api/projects/reiterate] Draft generated in ${duration}ms\n`);
     } catch (llmError: any) {
       console.error(`[POST /api/projects/reiterate] LLM generation error:`, llmError);
       process.stderr.write(`[POST /api/projects/reiterate] LLM generation error: ${llmError?.message || 'Unknown error'}\n`);
+      
+      // Check for specific error types
+      let errorMessage = llmError?.message || 'LLM service error';
+      let errorCode = 'ERR_LLM_GENERATION';
+      
+      if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+        errorCode = 'ERR_LLM_TIMEOUT';
+        errorMessage = 'The AI plan generation took too long. Please try again or use "Create Project" to skip AI planning.';
+      } else if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+        errorCode = 'ERR_LLM_AUTH';
+        errorMessage = 'AI service authentication failed. Please check API key configuration.';
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        errorCode = 'ERR_LLM_NETWORK';
+        errorMessage = 'Network error connecting to AI service. Please check your connection.';
+      }
+      
       return res.status(500).json({
         ok: false,
         error: 'Failed to generate project draft',
-        errorCode: 'ERR_LLM_GENERATION',
-        message: llmError?.message || 'LLM service error',
+        errorCode,
+        message: errorMessage,
         details: process.env.NODE_ENV === 'development' ? llmError?.stack : undefined
       });
     }
@@ -120,18 +157,35 @@ router.post("/", async (req, res, next) => {
         ok: false,
         error: 'Invalid draft structure returned from LLM',
         errorCode: 'ERR_LLM_INVALID_RESPONSE',
-        message: 'The LLM returned an invalid draft structure'
+        message: 'The AI returned an invalid response format. Please try again or use "Create Project" to skip AI planning.'
       });
+    }
+    
+    // Ensure new fields exist with defaults
+    if (!draft.resourcesAndGaps) {
+      draft.resourcesAndGaps = { hardware: [], infrastructure: [], skills: [], other: [] };
+    }
+    if (!Array.isArray(draft.assumptions)) {
+      draft.assumptions = [];
+    }
+    if (!Array.isArray(draft.questionsForUser)) {
+      draft.questionsForUser = [];
     }
 
     // Try to save draft to database, but don't fail if table doesn't exist yet
     let savedDraft = null;
     try {
+      // Save draft with new fields (store as JSON in context or create new fields if schema supports)
       savedDraft = await prisma.reiterationDraft.create({
         data: {
           version: nextVersion,
           title: parsed.title,
-          context: parsed.context || null,
+          context: {
+            ...(parsed.context || {}),
+            resourcesAndGaps: draft.resourcesAndGaps,
+            assumptions: draft.assumptions,
+            questionsForUser: draft.questionsForUser,
+          } as any,
           narrative: draft.narrative,
           prominentFeatures: draft.prominentFeatures,
           modes: draft.modes || null,
@@ -154,7 +208,12 @@ router.post("/", async (req, res, next) => {
           id: `temp-${Date.now()}`,
           version: nextVersion,
           title: parsed.title,
-          context: parsed.context || null,
+          context: {
+            ...(parsed.context || {}),
+            resourcesAndGaps: draft.resourcesAndGaps,
+            assumptions: draft.assumptions,
+            questionsForUser: draft.questionsForUser,
+          } as any,
           narrative: draft.narrative,
           prominentFeatures: draft.prominentFeatures,
           modes: draft.modes || null,
@@ -175,6 +234,12 @@ router.post("/", async (req, res, next) => {
     console.log(`[POST /api/projects/reiterate] Draft v${nextVersion} created (ID: ${savedDraft.id}), Status: 201`);
     process.stdout.write(`[POST /api/projects/reiterate] Draft v${nextVersion} created (ID: ${savedDraft.id}), Status: 201\n`);
     
+    // Extract new fields from context if stored there
+    const contextData = savedDraft.context as any || {};
+    const resourcesAndGaps = contextData.resourcesAndGaps || draft.resourcesAndGaps || { hardware: [], infrastructure: [], skills: [], other: [] };
+    const assumptions = contextData.assumptions || draft.assumptions || [];
+    const questionsForUser = contextData.questionsForUser || draft.questionsForUser || [];
+    
     const responseData = {
       ok: true,
       draft: {
@@ -190,6 +255,9 @@ router.post("/", async (req, res, next) => {
         dependencies: savedDraft.dependencies,
         instrumentation: savedDraft.instrumentation,
         acceptanceCriteria: savedDraft.acceptanceCriteria,
+        resourcesAndGaps,
+        assumptions,
+        questionsForUser,
         userEdits: savedDraft.userEdits,
         createdAt: savedDraft.createdAt || new Date().toISOString(),
       }

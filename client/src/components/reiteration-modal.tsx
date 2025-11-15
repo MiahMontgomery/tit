@@ -25,6 +25,14 @@ interface ReiterationDraft {
   dependencies?: any[];
   instrumentation?: any[];
   acceptanceCriteria: any[];
+  resourcesAndGaps?: {
+    hardware: string[];
+    infrastructure: string[];
+    skills: string[];
+    other: string[];
+  };
+  assumptions?: string[];
+  questionsForUser?: string[];
   userEdits?: string;
   createdAt: string;
 }
@@ -63,9 +71,18 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
       try {
         console.log('[ReiterationModal] Starting draft generation for:', title.trim());
         
-        // Add timeout handling - LLM can take 2+ minutes
+        // Add timeout handling - match server timeout (2.5 min) with client buffer
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
+        const timeoutId = setTimeout(() => {
+          console.error('[ReiterationModal] Client-side timeout triggered after 2.5 minutes');
+          controller.abort();
+        }, 150000); // 2.5 minute timeout to match server
+        
+        // Also add a warning timeout at 2 minutes
+        const warningTimeoutId = setTimeout(() => {
+          console.warn('[ReiterationModal] Draft generation taking longer than expected (2 minutes)');
+          setError('AI generation is taking longer than expected. You can cancel and use "Create Project" to skip AI planning.');
+        }, 120000);
         
         try {
           console.log('[ReiterationModal] Making request to /api/projects/reiterate');
@@ -82,6 +99,7 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
           });
           
           clearTimeout(timeoutId);
+          clearTimeout(warningTimeoutId);
 
           console.log('[ReiterationModal] Response received:', { 
             status: response.status, 
@@ -93,7 +111,23 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             console.error('[ReiterationModal] Error response:', errorData);
-            throw new Error(errorData.error || errorData.message || `Failed to generate draft (${response.status})`);
+            
+            // Provide user-friendly error messages based on error code
+            let errorMessage = errorData.message || errorData.error || `Failed to generate draft (${response.status})`;
+            
+            if (errorData.errorCode === 'ERR_LLM_NOT_CONFIGURED') {
+              errorMessage = 'AI planning is not available. Please use "Create Project" to create a project without AI planning.';
+            } else if (errorData.errorCode === 'ERR_LLM_TIMEOUT') {
+              errorMessage = 'The AI plan generation took too long. Please try again or use "Create Project" to skip AI planning.';
+            } else if (errorData.errorCode === 'ERR_LLM_AUTH') {
+              errorMessage = 'AI service authentication failed. Please check API key configuration. You can use "Create Project" to skip AI planning.';
+            } else if (errorData.errorCode === 'ERR_LLM_NETWORK') {
+              errorMessage = 'Network error connecting to AI service. Please check your connection. You can use "Create Project" to skip AI planning.';
+            } else if (errorData.errorCode === 'ERR_LLM_INVALID_RESPONSE') {
+              errorMessage = 'The AI returned an invalid response. Please try again or use "Create Project" to skip AI planning.';
+            }
+            
+            throw new Error(errorMessage);
           }
 
           console.log('[ReiterationModal] Parsing response JSON...');
@@ -121,16 +155,17 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
           console.log('[ReiterationModal] State updated successfully');
         } catch (fetchError: any) {
           clearTimeout(timeoutId);
+          clearTimeout(warningTimeoutId);
           console.error('[ReiterationModal] Fetch error:', {
             name: fetchError.name,
             message: fetchError.message,
             stack: fetchError.stack
           });
-          if (fetchError.name === 'AbortError') {
-            throw new Error('Request timed out after 3 minutes. The plan generation is taking longer than expected.');
+          if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
+            throw new Error('Request timed out after 2.5 minutes. The AI plan generation is taking too long. Please use "Create Project" to skip AI planning, or try again later.');
           }
-          if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('network')) {
-            throw new Error('Network error: Could not reach server. Please check your connection and try again.');
+          if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('network') || fetchError.message?.includes('NetworkError')) {
+            throw new Error('Network error: Could not reach server. Please check your connection and try again. You can use "Create Project" to skip AI planning.');
           }
           throw fetchError;
         }
@@ -148,6 +183,63 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
 
   const handleRegenerate = () => {
     handleDraftPlan();
+  };
+
+  // Simple project creation without AI planning
+  const handleSimpleCreate = async () => {
+    if (!title.trim()) return;
+
+    setState('creating_project');
+    setError(null);
+    
+    try {
+      const response = await fetchApi('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: title.trim(),
+          description: description.trim() || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || errorData.error || `Failed to create project (${response.status})`;
+        const errorCode = errorData.errorCode || errorData.prismaCode || '';
+        const fullError = errorCode ? `${errorMessage} [${errorCode}]` : errorMessage;
+        throw new Error(fullError);
+      }
+
+      const data = await response.json();
+      const project = data.project || data.data || data;
+      const projectId = project.id;
+
+      if (!projectId) {
+        throw new Error('Project created but no ID returned');
+      }
+
+      // Invalidate projects query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['projects-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+
+      setState('done');
+      handleClose();
+      
+      // Small delay to ensure query invalidation completes
+      setTimeout(() => {
+        setLocation(`/projects/${projectId}`);
+      }, 100);
+    } catch (err) {
+      console.error('Error creating project:', err);
+      let errorMessage = 'Failed to create project';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'object' && err !== null) {
+        errorMessage = (err as any).message || JSON.stringify(err);
+      }
+      setError(errorMessage);
+      setState('collecting_input');
+    }
   };
 
   const handleConfirmCreate = async () => {
@@ -292,6 +384,7 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
                   type="button"
                   variant="outline"
                   onClick={handleClose}
+                  disabled={state === 'creating_project'}
                   style={{
                     borderColor: '#333333',
                     color: '#e0e0e0'
@@ -300,16 +393,35 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
                   Cancel
                 </Button>
                 <Button
+                  onClick={handleSimpleCreate}
+                  disabled={!title.trim() || state === 'creating_project'}
+                  style={{
+                    backgroundColor: '#40e0d0',
+                    color: '#000000'
+                  }}
+                >
+                  {state === 'creating_project' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Project'
+                  )}
+                </Button>
+                <Button
                   onClick={() => {
                     if (title.trim()) {
                       setState('collecting_input');
                       handleDraftPlan();
                     }
                   }}
-                  disabled={!title.trim() || state === 'generating_draft'}
+                  disabled={!title.trim() || state === 'generating_draft' || state === 'creating_project'}
+                  variant="outline"
                   style={{
-                    backgroundColor: '#40e0d0',
-                    color: '#000000'
+                    borderColor: '#40e0d0',
+                    color: '#40e0d0',
+                    backgroundColor: 'transparent'
                   }}
                 >
                   {state === 'generating_draft' ? (
@@ -318,18 +430,43 @@ export function ReiterationModal({ isOpen, onClose }: ReiterationModalProps) {
                       Drafting Plan...
                     </>
                   ) : (
-                    'Draft Plan'
+                    'Draft Plan (AI)'
                   )}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Generating Draft */}
-          {state === 'generating_draft' && (
+          {/* Creating Project (Simple) */}
+          {state === 'creating_project' && (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin mb-4" style={{ color: '#40e0d0' }} />
+              <p style={{ color: '#888888' }}>Creating project...</p>
+            </div>
+          )}
+
+          {/* Generating Draft */}
+          {state === 'generating_draft' && (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin mb-4" style={{ color: '#40e0d0' }} />
               <p style={{ color: '#888888' }}>Generating project plan...</p>
+              <p className="text-xs" style={{ color: '#666666' }}>
+                This may take up to 2.5 minutes. If it takes too long, you can cancel and use "Create Project" to skip AI planning.
+              </p>
+              <Button
+                onClick={() => {
+                  setState('collecting_input');
+                  setError(null);
+                }}
+                variant="outline"
+                style={{
+                  borderColor: '#333333',
+                  color: '#e0e0e0',
+                  marginTop: '1rem'
+                }}
+              >
+                Cancel & Use "Create Project" Instead
+              </Button>
             </div>
           )}
 

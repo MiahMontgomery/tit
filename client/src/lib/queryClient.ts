@@ -215,7 +215,8 @@ export async function fetchApi(url: string, options?: RequestInit): Promise<Resp
   if (import.meta.env.DEV) {
     console.log('[fetchApi]', options?.method || 'GET', apiUrl, {
       hasBody: !!options?.body,
-      headers: options?.headers
+      headers: options?.headers,
+      hasSignal: !!options?.signal
     });
   }
   
@@ -223,6 +224,8 @@ export async function fetchApi(url: string, options?: RequestInit): Promise<Resp
     const response = await fetch(apiUrl, {
       ...options,
       credentials: "include",
+      // Ensure signal is passed through for timeout handling
+      signal: options?.signal,
     });
     
     // Log errors in development
@@ -231,9 +234,18 @@ export async function fetchApi(url: string, options?: RequestInit): Promise<Resp
     }
     
     return response;
-  } catch (error) {
+  } catch (error: any) {
     // Log network errors
     console.error('[fetchApi] Network error:', error, apiUrl);
+    
+    // If it's an AbortError, preserve it
+    if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+      const abortError: any = new Error('Request was aborted');
+      abortError.name = 'AbortError';
+      abortError.cause = error;
+      throw abortError;
+    }
+    
     throw error;
   }
 }
