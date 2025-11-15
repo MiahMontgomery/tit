@@ -30,8 +30,7 @@ router.get("/hierarchy/:id", optionalPatMiddleware, async (req, res) => {
       return res.status(400).json({ ok: false, error: "Invalid project ID" });
     }
     
-    // Use select to only query fields that exist in the database
-    // The database doesn't have a 'title' column, so we exclude it
+    // Fetch project with features, milestones, and goals
     const project = await prisma.project.findUnique({
       where: { id: projectIdInt },
       select: {
@@ -39,21 +38,18 @@ router.get("/hierarchy/:id", optionalPatMiddleware, async (req, res) => {
         name: true,
         description: true,
         createdAt: true,
-        charter: {
-          select: {
-            id: true,
-            projectId: true,
-            narrative: true,
-            prominentFeatures: true,
-            modes: true,
-            milestones: true,
-            risks: true,
-            dependencies: true,
-            instrumentation: true,
-            acceptanceCriteria: true,
-            createdAt: true,
-            updatedAt: true,
-          }
+        features: {
+          include: {
+            milestones: {
+              include: {
+                goals: {
+                  orderBy: { orderIndex: 'asc' }
+                }
+              },
+              orderBy: { orderIndex: 'asc' }
+            }
+          },
+          orderBy: { orderIndex: 'asc' }
         }
       }
     });
@@ -63,10 +59,23 @@ router.get("/hierarchy/:id", optionalPatMiddleware, async (req, res) => {
       return res.status(404).json({ ok: false, error: "Project not found" });
     }
 
-    // For now, return empty features array since features/milestones/goals tables don't exist in Prisma schema
-    // This will be populated once the hierarchy is generated via the plan endpoint
-    // TODO: Add features/milestones/goals tables to Prisma schema or use JSON storage in charter
-    const features: any[] = [];
+    // Transform Prisma data to match expected frontend format
+    const features = project.features.map(feature => ({
+      featureId: feature.id,
+      name: feature.name,
+      description: feature.description || "",
+      status: feature.status,
+      milestones: feature.milestones.map(milestone => ({
+        milestoneId: milestone.id,
+        title: milestone.title,
+        state: milestone.state,
+        goals: milestone.goals.map(goal => ({
+          goalId: goal.id,
+          title: goal.title,
+          state: goal.state,
+        }))
+      }))
+    }));
 
     console.log(`[${requestId}] [GET /api/hierarchy/:id] Returning hierarchy for project ${projectId} with ${features.length} features`);
     process.stdout.write(`[${requestId}] [GET /api/hierarchy/:id] Returning hierarchy for project ${projectId} with ${features.length} features\n`);
@@ -143,25 +152,19 @@ router.post("/hierarchy/:id/plan", optionalPatMiddleware, async (req, res) => {
       return res.status(404).json({ ok: false, error: "Project not found" });
     }
 
-    // For now, return success but note that hierarchy generation needs features/milestones/goals tables
-    // The ensureHierarchy function uses storage which doesn't match Prisma schema
-    // TODO: Implement Prisma-based hierarchy generation or migrate storage to use Prisma
-    
     console.log(`[${requestId}] [POST /api/hierarchy/:id/plan] Plan generation initiated for project ${projectId}`);
     
-    // Return success - actual hierarchy generation will be implemented once schema is updated
-    res.json({ 
-      ok: true,
-      created: false,
-      message: "Plan generation endpoint reached. Hierarchy tables need to be added to Prisma schema."
-    });
+    // Generate hierarchy using Prisma
+    const result = await ensureHierarchy({ projectId: String(projectIdInt) });
     
-    // TODO: Uncomment once hierarchy tables exist
-    // const result = await ensureHierarchy({ projectId: String(projectIdInt) });
-    // if (result.created) {
-    //   emitHierarchyUpdated(String(projectIdInt));
-    // }
-    // res.json({ ok: true, created: result.created });
+    if (result.created) {
+      emitHierarchyUpdated(String(projectIdInt));
+      console.log(`[${requestId}] [POST /api/hierarchy/:id/plan] Hierarchy created for project ${projectId}`);
+    } else {
+      console.log(`[${requestId}] [POST /api/hierarchy/:id/plan] Hierarchy already exists for project ${projectId}`);
+    }
+    
+    res.json({ ok: true, created: result.created });
   } catch (error: any) {
     console.error(`[${requestId}] [POST /api/hierarchy/:id/plan] Plan generation error:`, {
       message: error?.message,
@@ -185,16 +188,27 @@ router.patch("/goals/:goalId/state", optionalPatMiddleware, async (req, res) => 
       return res.status(400).json({ ok: false, error: "Invalid state" });
     }
 
-    // TODO: Implement goal state update with Prisma once goals table exists
-    console.log(`[${requestId}] [PATCH /api/goals/:goalId/state] Goal state update not yet implemented (needs goals table)`);
+    const goal = await prisma.goal.update({
+      where: { id: goalId },
+      data: { state: state as any },
+    });
+
+    console.log(`[${requestId}] [PATCH /api/goals/:goalId/state] Goal ${goalId} updated to ${state}`);
     
-    res.json({ ok: true, success: true });
+    // Emit event for real-time updates
+    emitGoalUpdated(goal.projectId.toString(), goalId);
+    
+    res.json({ ok: true, success: true, goal });
   } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ ok: false, error: "Goal not found" });
+    }
     console.error(`[${requestId}] [PATCH /api/goals/:goalId/state] Goal state update error:`, {
       message: error?.message,
       stack: error?.stack,
       goalId: req.params.goalId
     });
+    process.stderr.write(`[${requestId}] [PATCH /api/goals/:goalId/state] Error: ${error?.message}\n`);
     res.status(500).json({ ok: false, error: "Failed to update goal state" });
   }
 });
@@ -212,16 +226,27 @@ router.patch("/milestones/:milestoneId/state", optionalPatMiddleware, async (req
       return res.status(400).json({ ok: false, error: "Invalid state" });
     }
 
-    // TODO: Implement milestone state update with Prisma once milestones table exists
-    console.log(`[${requestId}] [PATCH /api/milestones/:milestoneId/state] Milestone state update not yet implemented (needs milestones table)`);
+    const milestone = await prisma.milestone.update({
+      where: { id: milestoneId },
+      data: { state: state as any },
+    });
+
+    console.log(`[${requestId}] [PATCH /api/milestones/:milestoneId/state] Milestone ${milestoneId} updated to ${state}`);
     
-    res.json({ ok: true, success: true });
+    // Emit event for real-time updates
+    emitMilestoneUpdated(milestone.projectId.toString(), milestoneId, state);
+    
+    res.json({ ok: true, success: true, milestone });
   } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ ok: false, error: "Milestone not found" });
+    }
     console.error(`[${requestId}] [PATCH /api/milestones/:milestoneId/state] Milestone state update error:`, {
       message: error?.message,
       stack: error?.stack,
       milestoneId: req.params.milestoneId
     });
+    process.stderr.write(`[${requestId}] [PATCH /api/milestones/:milestoneId/state] Error: ${error?.message}\n`);
     res.status(500).json({ ok: false, error: "Failed to update milestone state" });
   }
 });

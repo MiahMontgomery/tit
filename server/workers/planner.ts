@@ -1,7 +1,10 @@
 import { z } from "zod";
-import { storage } from "../storage";
-import { randomUUID } from "crypto";
+import { PrismaClient } from "@prisma/client";
 import { httpTap } from "../lib/httpTap";
+
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+});
 
 const hierarchySchema = z.object({
   features: z.array(z.object({
@@ -17,22 +20,70 @@ const hierarchySchema = z.object({
 
 export async function ensureHierarchy({ projectId }: { projectId: string }): Promise<{ created: boolean }> {
   try {
+    const projectIdInt = parseInt(projectId, 10);
+    if (isNaN(projectIdInt)) {
+      throw new Error(`Invalid project ID: ${projectId}`);
+    }
+
     // Check if project already has milestones or goals
-    const existingMilestones = await storage.getMilestonesByProject(projectId);
-    const existingGoals = await storage.getGoalsByProject(projectId);
+    const existingMilestones = await prisma.milestone.count({
+      where: { projectId: projectIdInt }
+    });
+    const existingGoals = await prisma.goal.count({
+      where: { projectId: projectIdInt }
+    });
     
-    if (existingMilestones.length > 0 || existingGoals.length > 0) {
-      console.log(`Project ${projectId} already has hierarchy data`);
+    if (existingMilestones > 0 || existingGoals > 0) {
+      console.log(`Project ${projectId} already has hierarchy data (${existingMilestones} milestones, ${existingGoals} goals)`);
       return { created: false };
     }
 
-    // Load project and features
-    const project = await storage.getProject(projectId);
+    // Load project with charter
+    const project = await prisma.project.findUnique({
+      where: { id: projectIdInt },
+      include: {
+        charter: true,
+        features: true
+      }
+    });
+
     if (!project) {
       throw new Error(`Project ${projectId} not found`);
     }
 
-    const features = await storage.getFeaturesByProject(projectId);
+    // Get or create features from charter
+    let features = project.features;
+    
+    if (features.length === 0 && project.charter?.prominentFeatures) {
+      // Create features from charter's prominentFeatures JSON
+      const prominentFeatures = project.charter.prominentFeatures as any;
+      const featureArray = Array.isArray(prominentFeatures) 
+        ? prominentFeatures 
+        : typeof prominentFeatures === 'object' && prominentFeatures !== null
+          ? Object.entries(prominentFeatures).map(([key, value]) => ({
+              name: key,
+              description: typeof value === 'string' ? value : JSON.stringify(value)
+            }))
+          : [];
+
+      if (featureArray.length > 0) {
+        console.log(`Creating ${featureArray.length} features from charter for project ${projectId}`);
+        features = await Promise.all(
+          featureArray.map((featureData: any, index: number) =>
+            prisma.feature.create({
+              data: {
+                projectId: projectIdInt,
+                name: featureData.name || featureData.title || `Feature ${index + 1}`,
+                description: featureData.description || featureData.desc || "",
+                status: "pending",
+                orderIndex: index,
+              }
+            })
+          )
+        );
+      }
+    }
+
     if (features.length === 0) {
       console.warn(`Project ${projectId} has no features, cannot generate hierarchy`);
       return { created: false };
@@ -40,45 +91,53 @@ export async function ensureHierarchy({ projectId }: { projectId: string }): Pro
 
     console.log(`Generating hierarchy for project ${projectId} with ${features.length} features`);
 
-  // Generate hierarchy using OpenRouter for substantial goals
-  const hierarchy = await generateHierarchyWithLLM(project, features);
+    // Generate hierarchy using OpenRouter for substantial goals
+    const hierarchy = await generateHierarchyWithLLM(project, features);
 
-  // Validate with zod
-  const validatedHierarchy = hierarchySchema.parse(hierarchy);
+    // Validate with zod
+    const validatedHierarchy = hierarchySchema.parse(hierarchy);
 
-  // Insert milestones and goals
-  for (const featureData of validatedHierarchy.features) {
-    for (let i = 0; i < featureData.milestones.length; i++) {
-      const milestoneData = featureData.milestones[i];
-      const milestoneId = randomUUID();
-      
-      await storage.createMilestone({
-        id: milestoneId,
-        projectId,
-        featureId: featureData.featureId,
-        title: milestoneData.title,
-        state: "PLANNED",
-        orderIndex: i,
-      });
+    // Insert milestones and goals in a transaction
+    await prisma.$transaction(async (tx) => {
+      for (const featureData of validatedHierarchy.features) {
+        const feature = features.find(f => f.id === featureData.featureId);
+        if (!feature) {
+          console.warn(`Feature ${featureData.featureId} not found, skipping`);
+          continue;
+        }
 
-      for (let j = 0; j < milestoneData.goals.length; j++) {
-        const goalData = milestoneData.goals[j];
-        const goalId = randomUUID();
-        
-        await storage.createGoal({
-          id: goalId,
-          projectId,
-          milestoneId,
-          title: goalData.title,
-          state: "PLANNED",
-          orderIndex: j,
-        });
+        for (let i = 0; i < featureData.milestones.length; i++) {
+          const milestoneData = featureData.milestones[i];
+          
+          const milestone = await tx.milestone.create({
+            data: {
+              projectId: projectIdInt,
+              featureId: feature.id,
+              title: milestoneData.title,
+              state: "PLANNED",
+              orderIndex: i,
+            }
+          });
+
+          for (let j = 0; j < milestoneData.goals.length; j++) {
+            const goalData = milestoneData.goals[j];
+            
+            await tx.goal.create({
+              data: {
+                projectId: projectIdInt,
+                milestoneId: milestone.id,
+                title: goalData.title,
+                state: "PLANNED",
+                orderIndex: j,
+              }
+            });
+          }
+        }
       }
-    }
-  }
+    });
 
-  console.log(`Successfully created hierarchy for project ${projectId}`);
-  return { created: true };
+    console.log(`Successfully created hierarchy for project ${projectId}`);
+    return { created: true };
   
   } catch (error) {
     console.error(`Error generating hierarchy for project ${projectId}:`, error);
@@ -160,7 +219,7 @@ Respond with valid JSON in this exact format:
     const hierarchyWithIds = {
       features: hierarchy.features.map((featureData: any, index: number) => ({
         ...featureData,
-        featureId: features[index]?.id || randomUUID()
+        featureId: features[index]?.id || `feature-${index}`
       }))
     };
     

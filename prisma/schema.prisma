@@ -24,6 +24,7 @@ model Project {
   description String?
   createdAt   DateTime @default(now())
   charter     ProjectCharter?
+  features    Feature[]
 }
 
 model ProjectCharter {
@@ -75,4 +76,67 @@ model Job {
   updatedAt DateTime  @updatedAt
 
   @@index([status, createdAt])
+}
+
+// Hierarchy system: Features, Milestones, Goals
+enum MilestoneState {
+  PLANNED
+  IN_PROGRESS
+  REVIEW
+  DONE
+  BLOCKED
+}
+
+enum GoalState {
+  PLANNED
+  IN_PROGRESS
+  REVIEW
+  DONE
+  BLOCKED
+}
+
+model Feature {
+  id          String     @id @default(cuid())
+  projectId   Int
+  name        String
+  description String?     @default("")
+  status      String      @default("pending")
+  orderIndex  Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestones  Milestone[]
+
+  @@index([projectId])
+}
+
+model Milestone {
+  id          String       @id @default(cuid())
+  projectId   Int
+  featureId   String
+  title       String
+  state       MilestoneState @default(PLANNED)
+  orderIndex  Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  feature     Feature      @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  goals       Goal[]
+
+  @@index([projectId])
+  @@index([featureId])
+}
+
+model Goal {
+  id          String     @id @default(cuid())
+  projectId   Int
+  milestoneId String
+  title       String
+  state       GoalState  @default(PLANNED)
+  orderIndex  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  milestone   Milestone  @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([milestoneId])
 }
