@@ -27,6 +27,33 @@
 3. Backend calls `tasksRepo.enqueueTask()` → Task saved to DB with status "queued"
 4. **STOP** - No worker picks up the task
 
+### The Two Queue System Problem
+
+**Critical Discovery:** There are TWO separate queue systems:
+
+1. **Jobs Queue** (`server/src/lib/queue.ts` + Prisma `Job` model)
+   - Used by `worker/src/index.ts` (the worker that IS running)
+   - Processes "jobs" with `kind` field: `scaffold`, `build`, `deploy`, `ops.*`
+   - This is for ops/automation tasks
+
+2. **Tasks Queue** (`server/core/repos/tasksRepo.ts` + Drizzle `tasks` table)
+   - Used by Input tab (`POST /api/projects/:id/tasks`)
+   - Processes "tasks" with `type` field: `chat`, `code`, `screenshot`, `exec`
+   - This is for user-initiated tasks from the Input tab
+   - **NO WORKER IS PROCESSING THIS QUEUE**
+
+**The Problem:**
+- `worker/src/index.ts` only processes **jobs** (from Prisma `Job` table)
+- User tasks are saved to **tasks** table (Drizzle schema)
+- `server/worker.ts` was supposed to process tasks, but it's NOT being started
+- The `start` script in `package.json` runs `worker/src/index.ts`, not `server/worker.ts`
+
+**The Solution:**
+Either:
+1. Start `server/worker.ts` as a separate process to handle tasks
+2. Modify `worker/src/index.ts` to also poll the `tasks` table
+3. Create a unified queue system that handles both jobs and tasks
+
 **What should happen:**
 1. User types message → Task created (✅ working)
 2. Worker process polls for queued tasks (❌ not running or not connected)
