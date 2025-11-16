@@ -384,9 +384,28 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   }, [liveActionsData]);
 
   const handleSendMessage = () => {
-    console.log('[InputTab] handleSendMessage called', { message: message.trim(), hasMessage: !!message.trim(), projectId });
+    // Aggressive logging to ensure we can see if this is called
+    console.log('[InputTab] ====== handleSendMessage CALLED ======');
+    console.log('[InputTab] Message:', message);
+    console.log('[InputTab] Message trimmed:', message.trim());
+    console.log('[InputTab] Has message:', !!message.trim());
+    console.log('[InputTab] ProjectId:', projectId);
+    console.log('[InputTab] Mutation status:', sendTaskMutation.status);
+    console.log('[InputTab] Mutation isPending:', sendTaskMutation.isPending);
+    
+    // Also log to window for easier debugging
+    if (typeof window !== 'undefined') {
+      (window as any).lastInputTabAction = {
+        action: 'handleSendMessage',
+        timestamp: new Date().toISOString(),
+        message: message,
+        projectId: projectId
+      };
+    }
+    
     if (!message.trim()) {
       console.warn('[InputTab] Cannot send empty message');
+      alert('Cannot send empty message'); // Temporary - remove after debugging
       return;
     }
     
@@ -1047,7 +1066,18 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         </Button>
           
           <Button
-            onClick={handleSendMessage}
+            onClick={(e) => {
+              console.log('[InputTab] Send button clicked!', { 
+                message, 
+                messageLength: message.length,
+                trimmed: message.trim(),
+                projectId,
+                disabled: !message.trim() || sendTaskMutation.isPending
+              });
+              e.preventDefault();
+              e.stopPropagation();
+              handleSendMessage();
+            }}
             disabled={!message.trim() || sendTaskMutation.isPending}
             size="sm"
             className="h-10 px-4"
