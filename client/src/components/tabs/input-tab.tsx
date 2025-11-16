@@ -124,7 +124,16 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   // Send task mutation
   const sendTaskMutation = useMutation({
     mutationFn: async (content: string) => {
+      console.log('[InputTab] ========== MUTATION FUNCTION CALLED ==========');
       console.log('[InputTab] mutationFn called - Sending task:', { projectId, content, contentLength: content.length });
+      
+      // Validate inputs
+      if (!content || !content.trim()) {
+        throw new Error('Message content is required');
+      }
+      if (!projectId) {
+        throw new Error('Project ID is required');
+      }
       
       // Backend expects { goalId, type, payload } format
       // Convert user message to task format
@@ -191,7 +200,34 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         throw error;
       }
     },
-    onSuccess: (response, sentContent) => {
+    onMutate: async (content) => {
+      // This runs IMMEDIATELY when mutation is called (before mutationFn)
+      console.log('[InputTab] ========== onMutate CALLED ==========');
+      console.log('[InputTab] Mutation is starting, content:', content);
+      
+      // Clear message immediately - this should make the input clear and button show spinner
+      const messageToSend = content.trim();
+      setMessage('');
+      console.log('[InputTab] Message cleared, input should be empty now');
+      
+      // Add user message to chat immediately (optimistic update)
+      const optimisticUserMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        content: messageToSend,
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        type: 'text',
+      };
+      setMessages(prev => {
+        console.log('[InputTab] Adding optimistic message, current messages count:', prev.length);
+        return [...prev, optimisticUserMessage];
+      });
+      console.log('[InputTab] Optimistic update complete');
+      
+      // Return context for error handling
+      return { messageToSend } as { messageToSend: string };
+    },
+    onSuccess: (response, sentContent, context) => {
       console.log('[InputTab] Task created successfully:', response);
       // Backend returns { success: true, data: task }
       const task = response.data || response;
@@ -224,6 +260,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       }, 100);
     },
     onError: (error, variables, context) => {
+      console.error('[InputTab] ========== onError CALLED ==========');
       console.error('[InputTab] Failed to create task:', error);
       console.error('[InputTab] Error details:', {
         message: error instanceof Error ? error.message : String(error),
@@ -232,6 +269,11 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         variables,
         context
       });
+      
+      // Restore message if we have context
+      if (context && typeof context === 'object' && 'messageToSend' in context) {
+        setMessage(String(context.messageToSend));
+      }
       
       // Extract error message
       let errorMsg = 'Failed to create task';
@@ -457,48 +499,24 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       return;
     }
     
-    // Clear message immediately for better UX (will be restored on error)
-    setMessage('');
-    console.log('[InputTab] Message cleared from input');
-    
-    // Add user message to chat immediately (optimistic update)
-    const optimisticUserMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      content: messageToSend,
-      sender: 'user',
-      timestamp: new Date().toISOString(),
-      type: 'text',
-    };
-    setMessages(prev => {
-      console.log('[InputTab] Adding optimistic message, current messages count:', prev.length);
-      return [...prev, optimisticUserMessage];
-    });
-    console.log('[InputTab] Optimistic message added');
-    
+    // Just call mutate - onMutate will handle clearing message and optimistic update
     console.log('[InputTab] About to call mutation.mutate()...');
-    try {
-      sendTaskMutation.mutate(messageToSend, {
-      onError: (error, variables, context) => {
-        console.error('[InputTab] Mutation error in handleSendMessage:', error);
-        console.error('[InputTab] Error variables:', variables);
-        // Restore message on error
-        setMessage(messageToSend);
-        // Error handling is also in the mutation's onError, but this ensures message is restored
-      },
-      onSettled: (data, error, variables, context) => {
-        console.log('[InputTab] Mutation settled:', { 
-          hasData: !!data, 
-          hasError: !!error,
-          variables,
-          mutationState: sendTaskMutation.status,
-          mutationIsPending: sendTaskMutation.isPending
-        });
-      }
+    console.log('[InputTab] Mutation object check:', {
+      hasMutate: typeof sendTaskMutation.mutate === 'function',
+      status: sendTaskMutation.status,
+      isPending: sendTaskMutation.isPending,
+      isError: sendTaskMutation.isError,
+      isSuccess: sendTaskMutation.isSuccess
     });
-    console.log('[InputTab] Mutation.mutate() called successfully');
+    
+    try {
+      // Call mutate - onMutate will handle clearing message and optimistic update
+      sendTaskMutation.mutate(messageToSend);
+      console.log('[InputTab] Mutation.mutate() called - onMutate should fire immediately');
     } catch (mutateError) {
+      console.error('[InputTab] ========== ERROR CALLING MUTATION ==========');
       console.error('[InputTab] Error calling mutation.mutate():', mutateError);
-      alert('Error calling mutation. Check console.');
+      alert(`Error calling mutation: ${mutateError instanceof Error ? mutateError.message : String(mutateError)}`);
       setMessage(messageToSend); // Restore message
     }
   };
