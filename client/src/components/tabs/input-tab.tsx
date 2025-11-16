@@ -1046,28 +1046,32 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       </div>
       </ScrollArea>
 
-      {/* Debug Test Button - Remove after debugging */}
-      <div className="border-t p-2" style={{ backgroundColor: '#1a1a1a', borderColor: '#ff0000' }}>
-        <button
-          onClick={() => {
-            alert(`Test button works! Message: "${message}", ProjectId: ${projectId}`);
-            console.log('[InputTab] TEST BUTTON CLICKED - This proves clicks work!');
-          }}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#ff0000',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          🐛 TEST BUTTON - Click Me First
-        </button>
-      </div>
-
       {/* Input Area */}
       <div className="border-t p-4" style={{ backgroundColor: '#0f0f0f', borderColor: '#333333' }}>
+        {/* Debug Test Button - VERY VISIBLE - Remove after debugging */}
+        <div className="mb-4 p-3 rounded" style={{ backgroundColor: '#ff0000', border: '3px solid #ffff00' }}>
+          <div style={{ color: '#ffffff', fontWeight: 'bold', marginBottom: '8px' }}>
+            🐛 DEBUG VERSION v2.0 - If you see this, new code is deployed!
+          </div>
+          <button
+            onClick={() => {
+              alert(`✅ TEST BUTTON WORKS!\n\nMessage: "${message}"\nProjectId: ${projectId}\nType: ${typeof projectId}\n\nIf you see this alert, click events work!`);
+            }}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#ffff00',
+              color: '#000000',
+              border: '2px solid #000000',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '16px'
+            }}
+          >
+            🧪 CLICK THIS TEST BUTTON FIRST
+          </button>
+        </div>
+        
         <div className="flex items-center gap-2">
           <div className="flex-1 relative">
             <Input
