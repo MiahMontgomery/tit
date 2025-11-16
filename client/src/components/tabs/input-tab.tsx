@@ -1068,8 +1068,11 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       <div className="border-t p-4" style={{ backgroundColor: '#0f0f0f', borderColor: '#333333' }}>
         {/* Debug Test Button - VERY VISIBLE - Remove after debugging */}
         <div className="mb-4 p-3 rounded" style={{ backgroundColor: '#ff0000', border: '3px solid #ffff00' }}>
-          <div style={{ color: '#ffffff', fontWeight: 'bold', marginBottom: '8px' }}>
-            🐛 DEBUG VERSION v2.0 - If you see this, new code is deployed!
+          <div style={{ color: '#ffffff', fontWeight: 'bold', marginBottom: '8px', fontSize: '18px' }}>
+            🐛 DEPLOYMENT CHECK v3.0 - If you see this, NEW CODE IS DEPLOYED! ✅
+          </div>
+          <div style={{ color: '#ffffff', fontSize: '14px', marginBottom: '8px' }}>
+            This version includes: onMutate handler, optimistic updates, improved task creation
           </div>
           <button
             onClick={() => {
