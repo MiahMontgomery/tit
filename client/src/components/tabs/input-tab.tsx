@@ -176,38 +176,63 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         throw error;
       }
     },
-    onSuccess: (response) => {
+    onSuccess: (response, sentContent) => {
+      console.log('[InputTab] Task created successfully:', response);
       // Backend returns { success: true, data: task }
       const task = response.data || response;
-      // Add task to chat
+      
+      // User message was already added optimistically, just add confirmation
+      // Add task confirmation message
       const taskMessage: ChatMessage = {
         id: task.id || `task-${Date.now()}`,
-        content: `Task: ${task.payload?.content || task.content || message}`,
-        sender: 'user',
+        content: `✅ Task created: ${task.type || 'message'} (ID: ${task.id})`,
+        sender: 'assistant',
         timestamp: task.createdAt || new Date().toISOString(),
         type: 'action',
         metadata: {
           action: 'task_created',
-          status: 'pending'
+          status: 'success',
+          taskId: task.id
         }
       };
       setMessages(prev => [...prev, taskMessage]);
+      
+      // Invalidate queries to refresh counters
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
       queryClient.invalidateQueries({ queryKey: ['messages', projectId] });
-      setMessage('');
+      queryClient.invalidateQueries({ queryKey: ['runs', projectId] });
+      
+      console.log('[InputTab] Messages updated, queries invalidated');
+      
+      // Scroll to bottom
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
       console.error('[InputTab] Failed to create task:', error);
       console.error('[InputTab] Error details:', {
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
-        name: error instanceof Error ? error.name : typeof error
+        name: error instanceof Error ? error.name : typeof error,
+        variables,
+        context
       });
+      
+      // Extract error message
+      let errorMsg = 'Failed to create task';
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === 'string') {
+        errorMsg = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMsg = String((error as any).message);
+      }
       
       // Show error to user with more details
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
-        content: `Error: ${error instanceof Error ? error.message : 'Failed to create task. Please check the browser console for details.'}`,
+        content: `❌ Error: ${errorMsg}. Check browser console (F12) for details.`,
         sender: 'assistant',
         timestamp: new Date().toISOString(),
         type: 'action',
@@ -220,6 +245,11 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       
       // Also log to console for debugging
       console.error('[InputTab] Error message added to chat:', errorMessage);
+      
+      // Force scroll to bottom to show error
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     },
   });
 
@@ -384,11 +414,32 @@ export function InputTab({ projectId, pat }: InputTabProps) {
     const messageToSend = message.trim();
     setMessage('');
     
+    // Add user message to chat immediately (optimistic update)
+    const optimisticUserMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      content: messageToSend,
+      sender: 'user',
+      timestamp: new Date().toISOString(),
+      type: 'text',
+    };
+    setMessages(prev => [...prev, optimisticUserMessage]);
+    
+    console.log('[InputTab] Starting mutation with message:', messageToSend);
+    
     sendTaskMutation.mutate(messageToSend, {
-      onError: (error) => {
-        console.error('[InputTab] Mutation error:', error);
+      onError: (error, variables, context) => {
+        console.error('[InputTab] Mutation error in handleSendMessage:', error);
+        console.error('[InputTab] Error variables:', variables);
         // Restore message on error
         setMessage(messageToSend);
+        // Error handling is also in the mutation's onError, but this ensures message is restored
+      },
+      onSettled: (data, error, variables, context) => {
+        console.log('[InputTab] Mutation settled:', { 
+          hasData: !!data, 
+          hasError: !!error,
+          variables 
+        });
       }
     });
   };
