@@ -191,8 +191,7 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         type: 'action',
         metadata: {
           action: 'task_created',
-          status: 'success',
-          taskId: task.id
+          status: 'success'
         }
       };
       setMessages(prev => [...prev, taskMessage]);
@@ -1011,12 +1010,18 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         <div className="flex items-center gap-2">
           <div className="flex-1 relative">
             <Input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              value={message}
+              onChange={(e) => {
+                console.log('[InputTab] Input onChange:', e.target.value);
+                setMessage(e.target.value);
+              }}
+              onKeyPress={(e) => {
+                console.log('[InputTab] Input onKeyPress:', e.key);
+                handleKeyPress(e);
+              }}
               placeholder="Type your message or request..."
               className="pr-20"
-          disabled={sendTaskMutation.isPending}
+              disabled={sendTaskMutation.isPending}
               style={{ 
                 backgroundColor: '#050505', 
                 borderColor: '#333333',
