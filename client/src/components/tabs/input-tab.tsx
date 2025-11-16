@@ -1046,6 +1046,26 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       </div>
       </ScrollArea>
 
+      {/* Debug Test Button - Remove after debugging */}
+      <div className="border-t p-2" style={{ backgroundColor: '#1a1a1a', borderColor: '#ff0000' }}>
+        <button
+          onClick={() => {
+            alert(`Test button works! Message: "${message}", ProjectId: ${projectId}`);
+            console.log('[InputTab] TEST BUTTON CLICKED - This proves clicks work!');
+          }}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#ff0000',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          🐛 TEST BUTTON - Click Me First
+        </button>
+      </div>
+
       {/* Input Area */}
       <div className="border-t p-4" style={{ backgroundColor: '#0f0f0f', borderColor: '#333333' }}>
         <div className="flex items-center gap-2">
