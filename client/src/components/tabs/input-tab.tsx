@@ -69,6 +69,8 @@ interface InputTabProps {
 }
 
 export function InputTab({ projectId, pat }: InputTabProps) {
+  console.log('[InputTab] Component rendered with projectId:', projectId, 'type:', typeof projectId);
+  
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [liveActions, setLiveActions] = useState<LiveAction[]>([]);
@@ -77,6 +79,11 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  
+  // Log component mount
+  useEffect(() => {
+    console.log('[InputTab] Component mounted/updated', { projectId, message, messagesCount: messages.length });
+  }, [projectId, message, messages.length]);
 
   // Fetch project charter
   const { data: charter } = useQuery({
@@ -1106,23 +1113,45 @@ export function InputTab({ projectId, pat }: InputTabProps) {
           
           <Button
             onClick={(e) => {
+              console.log('[InputTab] ========== SEND BUTTON ONCLICK FIRED ==========');
               console.log('[InputTab] Send button clicked!', { 
                 message, 
                 messageLength: message.length,
                 trimmed: message.trim(),
+                hasTrimmed: !!message.trim(),
                 projectId,
-                disabled: !message.trim() || sendTaskMutation.isPending
+                projectIdType: typeof projectId,
+                disabled: !message.trim() || sendTaskMutation.isPending,
+                mutationPending: sendTaskMutation.isPending,
+                mutationStatus: sendTaskMutation.status
               });
+              
+              // Force alert to verify click is working
+              if (!message.trim()) {
+                alert('Message is empty!');
+                return;
+              }
+              
               e.preventDefault();
               e.stopPropagation();
+              
+              console.log('[InputTab] About to call handleSendMessage()');
               handleSendMessage();
+              console.log('[InputTab] handleSendMessage() call completed');
+            }}
+            onMouseDown={(e) => {
+              console.log('[InputTab] Send button onMouseDown fired!');
+            }}
+            onMouseUp={(e) => {
+              console.log('[InputTab] Send button onMouseUp fired!');
             }}
             disabled={!message.trim() || sendTaskMutation.isPending}
             size="sm"
             className="h-10 px-4"
             style={{ 
               backgroundColor: '#40e0d0',
-              color: '#000000'
+              color: '#000000',
+              cursor: (!message.trim() || sendTaskMutation.isPending) ? 'not-allowed' : 'pointer'
             }}
           >
             {sendTaskMutation.isPending ? (
