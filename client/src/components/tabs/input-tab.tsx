@@ -197,11 +197,17 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       setMessage('');
     },
     onError: (error) => {
-      console.error('Failed to create task:', error);
-      // Show error to user
+      console.error('[InputTab] Failed to create task:', error);
+      console.error('[InputTab] Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error
+      });
+      
+      // Show error to user with more details
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
-        content: `Error: ${error instanceof Error ? error.message : 'Failed to create task'}`,
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to create task. Please check the browser console for details.'}`,
         sender: 'assistant',
         timestamp: new Date().toISOString(),
         type: 'action',
@@ -211,6 +217,9 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         }
       };
       setMessages(prev => [...prev, errorMessage]);
+      
+      // Also log to console for debugging
+      console.error('[InputTab] Error message added to chat:', errorMessage);
     },
   });
 
@@ -345,17 +354,43 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   }, [liveActionsData]);
 
   const handleSendMessage = () => {
-    console.log('[InputTab] handleSendMessage called', { message: message.trim(), hasMessage: !!message.trim() });
-    if (message.trim()) {
-      console.log('[InputTab] Calling sendTaskMutation.mutate');
-      try {
-        sendTaskMutation.mutate(message);
-      } catch (error) {
-        console.error('[InputTab] Error calling mutation:', error);
-      }
-    } else {
+    console.log('[InputTab] handleSendMessage called', { message: message.trim(), hasMessage: !!message.trim(), projectId });
+    if (!message.trim()) {
       console.warn('[InputTab] Cannot send empty message');
+      return;
     }
+    
+    if (!projectId) {
+      console.error('[InputTab] No projectId provided');
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        content: 'Error: No project ID available',
+        sender: 'assistant',
+        timestamp: new Date().toISOString(),
+        type: 'action',
+        metadata: { action: 'error', status: 'error' }
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
+    
+    console.log('[InputTab] Calling sendTaskMutation.mutate with:', { 
+      content: message.trim(), 
+      projectId,
+      mutationState: sendTaskMutation.status 
+    });
+    
+    // Clear message immediately for better UX (will be restored on error)
+    const messageToSend = message.trim();
+    setMessage('');
+    
+    sendTaskMutation.mutate(messageToSend, {
+      onError: (error) => {
+        console.error('[InputTab] Mutation error:', error);
+        // Restore message on error
+        setMessage(messageToSend);
+      }
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

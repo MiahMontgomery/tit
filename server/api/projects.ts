@@ -468,15 +468,36 @@ router.get("/:id/tree", async (req, res) => {
 
 // POST /api/projects/:id/tasks - Create a new task
 router.post("/:id/tasks", taskRateLimit, async (req, res) => {
+  const requestId = (req as any).requestId || 'NO-ID';
   try {
     const { id } = req.params;
+    console.log(`[${requestId}] [POST /api/projects/:id/tasks] Request received`, {
+      projectId: id,
+      body: req.body,
+      bodyKeys: Object.keys(req.body || {})
+    });
+    
     const { goalId, type, payload } = createTaskSchema.parse(req.body);
+    
+    console.log(`[${requestId}] [POST /api/projects/:id/tasks] Parsed request:`, {
+      projectId: id,
+      type,
+      goalId,
+      payloadKeys: Object.keys(payload || {})
+    });
 
     logger.projectInfo(id, "Creating new task", { type, goalId, payload });
 
     const task = await tasksRepo.enqueueTask(id, goalId || null, type, payload);
     incrementMetric('tasksProcessed');
 
+    console.log(`[${requestId}] [POST /api/projects/:id/tasks] Task created successfully:`, {
+      taskId: task.id,
+      projectId: id,
+      type,
+      status: task.status
+    });
+    
     logger.projectInfo(id, "Task created successfully", { taskId: task.id });
 
     res.status(201).json({
@@ -485,21 +506,32 @@ router.post("/:id/tasks", taskRateLimit, async (req, res) => {
     });
 
   } catch (error) {
-    logger.projectError(req.params.id, "Failed to create task", { 
+    const projectId = req.params.id;
+    console.error(`[${requestId}] [POST /api/projects/:id/tasks] Error:`, {
+      projectId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      isZodError: error instanceof z.ZodError
+    });
+    
+    logger.projectError(projectId, "Failed to create task", { 
       error: error instanceof Error ? error.message : 'Unknown error' 
     });
     
     if (error instanceof z.ZodError) {
+      console.error(`[${requestId}] [POST /api/projects/:id/tasks] Validation errors:`, error.errors);
       return res.status(400).json({
         success: false,
         error: "Validation failed",
-        details: error.errors
+        details: error.errors,
+        message: `Validation failed: ${error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
       });
     }
 
     res.status(500).json({
       success: false,
-      error: "Failed to create task"
+      error: error instanceof Error ? error.message : "Failed to create task",
+      message: error instanceof Error ? error.message : "Failed to create task"
     });
   }
 });
