@@ -131,8 +131,16 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       console.log('[InputTab] API URL will be:', `/api/projects/${projectId}/tasks`);
       
       try {
-        const apiUrl = `/api/projects/${projectId}/tasks`;
-        console.log('[InputTab] About to call fetchApi:', { method: 'POST', url: apiUrl });
+        // Ensure projectId is a string for the URL
+        const projectIdStr = String(projectId);
+        const apiUrl = `/api/projects/${projectIdStr}/tasks`;
+        console.log('[InputTab] About to call fetchApi:', { 
+          method: 'POST', 
+          url: apiUrl,
+          projectId: projectId,
+          projectIdStr: projectIdStr,
+          projectIdType: typeof projectId
+        });
         
         // Add timeout
         const controller = new AbortController();
@@ -422,15 +430,29 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       return;
     }
     
+    const messageToSend = message.trim();
     console.log('[InputTab] Calling sendTaskMutation.mutate with:', { 
-      content: message.trim(), 
+      content: messageToSend, 
+      contentLength: messageToSend.length,
       projectId,
-      mutationState: sendTaskMutation.status 
+      projectIdType: typeof projectId,
+      mutationState: sendTaskMutation.status,
+      mutationIsPending: sendTaskMutation.isPending,
+      mutationIsError: sendTaskMutation.isError,
+      mutationIsSuccess: sendTaskMutation.isSuccess
     });
     
+    // Verify mutation is set up
+    if (!sendTaskMutation || typeof sendTaskMutation.mutate !== 'function') {
+      console.error('[InputTab] Mutation not properly initialized!', sendTaskMutation);
+      alert('Error: Mutation not initialized. Check console.');
+      setMessage(messageToSend); // Restore message
+      return;
+    }
+    
     // Clear message immediately for better UX (will be restored on error)
-    const messageToSend = message.trim();
     setMessage('');
+    console.log('[InputTab] Message cleared from input');
     
     // Add user message to chat immediately (optimistic update)
     const optimisticUserMessage: ChatMessage = {
@@ -440,11 +462,15 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       timestamp: new Date().toISOString(),
       type: 'text',
     };
-    setMessages(prev => [...prev, optimisticUserMessage]);
+    setMessages(prev => {
+      console.log('[InputTab] Adding optimistic message, current messages count:', prev.length);
+      return [...prev, optimisticUserMessage];
+    });
+    console.log('[InputTab] Optimistic message added');
     
-    console.log('[InputTab] Starting mutation with message:', messageToSend);
-    
-    sendTaskMutation.mutate(messageToSend, {
+    console.log('[InputTab] About to call mutation.mutate()...');
+    try {
+      sendTaskMutation.mutate(messageToSend, {
       onError: (error, variables, context) => {
         console.error('[InputTab] Mutation error in handleSendMessage:', error);
         console.error('[InputTab] Error variables:', variables);
@@ -456,10 +482,18 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         console.log('[InputTab] Mutation settled:', { 
           hasData: !!data, 
           hasError: !!error,
-          variables 
+          variables,
+          mutationState: sendTaskMutation.status,
+          mutationIsPending: sendTaskMutation.isPending
         });
       }
     });
+    console.log('[InputTab] Mutation.mutate() called successfully');
+    } catch (mutateError) {
+      console.error('[InputTab] Error calling mutation.mutate():', mutateError);
+      alert('Error calling mutation. Check console.');
+      setMessage(messageToSend); // Restore message
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
