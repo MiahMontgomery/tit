@@ -205,6 +205,9 @@ export function InputTab({ projectId, pat }: InputTabProps) {
       console.log('[InputTab] ========== onMutate CALLED ==========');
       console.log('[InputTab] Mutation is starting, content:', content);
       
+      // Update visible debug info
+      setDebugInfo(prev => ({ ...prev, onMutateCalled: true, lastAction: 'onMutate called', mutationStatus: 'pending' }));
+      
       // Clear message immediately - this should make the input clear and button show spinner
       const messageToSend = content.trim();
       setMessage('');
@@ -270,11 +273,6 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         context
       });
       
-      // Restore message if we have context
-      if (context && typeof context === 'object' && 'messageToSend' in context) {
-        setMessage(String(context.messageToSend));
-      }
-      
       // Extract error message
       let errorMsg = 'Failed to create task';
       if (error instanceof Error) {
@@ -283,6 +281,19 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         errorMsg = error;
       } else if (error && typeof error === 'object' && 'message' in error) {
         errorMsg = String((error as any).message);
+      }
+      
+      // Update visible debug info
+      setDebugInfo(prev => ({ 
+        ...prev, 
+        lastError: errorMsg, 
+        lastAction: 'Error occurred',
+        mutationStatus: 'error'
+      }));
+      
+      // Restore message if we have context
+      if (context && typeof context === 'object' && 'messageToSend' in context) {
+        setMessage(String(context.messageToSend));
       }
       
       // Show error to user with more details
@@ -448,6 +459,9 @@ export function InputTab({ projectId, pat }: InputTabProps) {
     console.log('[InputTab] ProjectId:', projectId);
     console.log('[InputTab] Mutation status:', sendTaskMutation.status);
     console.log('[InputTab] Mutation isPending:', sendTaskMutation.isPending);
+    
+    // Update visible debug info
+    setDebugInfo(prev => ({ ...prev, handleSendCalled: true, lastAction: 'handleSendMessage called' }));
     
     // Also log to window for easier debugging
     if (typeof window !== 'undefined') {
@@ -1069,10 +1083,29 @@ export function InputTab({ projectId, pat }: InputTabProps) {
         {/* Debug Test Button - VERY VISIBLE - Remove after debugging */}
         <div className="mb-4 p-3 rounded" style={{ backgroundColor: '#ff0000', border: '3px solid #ffff00' }}>
           <div style={{ color: '#ffffff', fontWeight: 'bold', marginBottom: '8px', fontSize: '18px' }}>
-            🐛 DEPLOYMENT CHECK v3.0 - If you see this, NEW CODE IS DEPLOYED! ✅
+            🐛 DEPLOYMENT CHECK v3.1 - If you see this, NEW CODE IS DEPLOYED! ✅
           </div>
           <div style={{ color: '#ffffff', fontSize: '14px', marginBottom: '8px' }}>
-            This version includes: onMutate handler, optimistic updates, improved task creation
+            This version includes: onMutate handler, optimistic updates, improved task creation, visible debug panel
+          </div>
+          
+          {/* Visible Debug Panel */}
+          <div className="mt-3 p-2 rounded" style={{ backgroundColor: '#000000', border: '1px solid #ffff00' }}>
+            <div style={{ color: '#ffff00', fontWeight: 'bold', marginBottom: '4px' }}>🔍 DEBUG STATUS:</div>
+            <div style={{ color: '#ffffff', fontSize: '12px', fontFamily: 'monospace' }}>
+              <div>Last Action: {debugInfo.lastAction || 'None'}</div>
+              <div>Mutation Status: {debugInfo.mutationStatus || sendTaskMutation.status || 'unknown'}</div>
+              <div>isPending: {sendTaskMutation.isPending ? 'YES' : 'NO'}</div>
+              <div>onClick Fired: {debugInfo.onClickFired ? 'YES ✅' : 'NO ❌'}</div>
+              <div>handleSend Called: {debugInfo.handleSendCalled ? 'YES ✅' : 'NO ❌'}</div>
+              <div>onMutate Called: {debugInfo.onMutateCalled ? 'YES ✅' : 'NO ❌'}</div>
+              {debugInfo.lastError && (
+                <div style={{ color: '#ff6b6b' }}>Last Error: {debugInfo.lastError}</div>
+              )}
+              <div>Message Length: {message.length}</div>
+              <div>Message Trimmed: {message.trim().length}</div>
+              <div>Button Disabled: {(!message.trim() || sendTaskMutation.isPending) ? 'YES' : 'NO'}</div>
+            </div>
           </div>
           <button
             onClick={() => {
@@ -1171,8 +1204,17 @@ export function InputTab({ projectId, pat }: InputTabProps) {
                 mutationStatus: sendTaskMutation.status
               });
               
+              // Update visible debug info
+              setDebugInfo(prev => ({ 
+                ...prev, 
+                onClickFired: true, 
+                lastAction: `Send button clicked at ${new Date().toLocaleTimeString()}`,
+                mutationStatus: sendTaskMutation.status
+              }));
+              
               // Force alert to verify click is working
               if (!message.trim()) {
+                setDebugInfo(prev => ({ ...prev, lastError: 'Message is empty!' }));
                 alert('Message is empty!');
                 return;
               }
