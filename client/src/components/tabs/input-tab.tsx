@@ -80,6 +80,16 @@ export function InputTab({ projectId, pat }: InputTabProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   
+  // Visible debug state for UI debugging (since console not accessible)
+  const [debugInfo, setDebugInfo] = useState<{
+    lastAction?: string;
+    lastError?: string;
+    mutationStatus?: string;
+    onClickFired?: boolean;
+    handleSendCalled?: boolean;
+    onMutateCalled?: boolean;
+  }>({});
+  
   // Log component mount
   useEffect(() => {
     console.log('[InputTab] Component mounted/updated', { projectId, message, messagesCount: messages.length });
