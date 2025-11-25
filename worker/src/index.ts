@@ -1,7 +1,8 @@
 import http from 'http';
-import { claimNext, markDone, markErrorOrRetry } from '../../server/src/lib/queue.js';
+import { claimNext, markDone, markErrorOrRetry, enqueue } from '../../server/src/lib/queue.js';
 import { logger } from '../../server/src/lib/logger.js';
 import { prisma } from '../../server/src/lib/db.js';
+import { ProjectsRepo } from '../../server/src/lib/repos/ProjectsRepo.js';
 import { scaffold } from './handlers/scaffold.js';
 import { build } from './handlers/build.js';
 import { deploy } from './handlers/deploy.js';
@@ -16,8 +17,10 @@ import { opsPromote } from './handlers/ops.promote.js';
 import { opsRollback } from './handlers/ops.rollback.js';
 
 const POLL_INTERVAL = 500; // 500ms
+const IDLE_CHECK_INTERVAL = 30000; // Check for idle state every 30 seconds
 let isRunning = false;
 let healthServer: http.Server | null = null;
+let lastIdleCheck = 0;
 
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -101,6 +104,128 @@ async function processJob(job: any): Promise<void> {
   }
 }
 
+/**
+ * Check if Titan is idle (no active jobs) and create a new project if so
+ */
+async function checkIdleAndSpawn(): Promise<void> {
+  const now = Date.now();
+  
+  // Only check every IDLE_CHECK_INTERVAL to avoid excessive DB queries
+  if (now - lastIdleCheck < IDLE_CHECK_INTERVAL) {
+    return;
+  }
+  
+  lastIdleCheck = now;
+  
+  try {
+    // Check if there are any active jobs
+    const hasActiveJobs = await ProjectsRepo.hasActiveJobs();
+    
+    if (hasActiveJobs) {
+      // There are jobs to process, don't spawn new projects
+      return;
+    }
+    
+    logger.info('Titan is idle - checking for projects to spawn');
+    
+    // Check for idle projects that might need jobs
+    const idleProjects = await ProjectsRepo.getIdleProjects(5);
+    
+    if (idleProjects.length === 0) {
+      // No projects exist yet, create a new one
+      logger.info('No projects found - creating new autonomous project');
+      await spawnNewProject();
+    } else {
+      // We have projects but they're idle - check if any need pipeline jobs
+      logger.info(`Found ${idleProjects.length} idle projects - checking if they need pipeline jobs`);
+      
+      for (const project of idleProjects) {
+        // Check if this project has any jobs at all
+        const jobCount = await prisma.job.count({
+          where: { projectId: String(project.id) }
+        });
+        
+        if (jobCount === 0) {
+          // Project exists but has no jobs - start the pipeline
+          logger.info(`Project ${project.id} (${project.name}) has no jobs - starting pipeline`);
+          await startProjectPipeline(project.id, project.name);
+          break; // Only start one at a time
+        }
+      }
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Error in idle check/spawn', { 
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+  }
+}
+
+/**
+ * Create a new autonomous project
+ */
+async function spawnNewProject(): Promise<void> {
+  try {
+    const projectName = `Autonomous Project ${new Date().toISOString().split('T')[0]}`;
+    const projectDescription = `Auto-created by Titan worker on ${new Date().toISOString()}`;
+    
+    logger.info('Creating new autonomous project', { name: projectName });
+    
+    const project = await ProjectsRepo.create({
+      name: projectName,
+      description: projectDescription
+    });
+    
+    logger.info('New project created', { projectId: project.id, name: project.name });
+    
+    // Start the pipeline for this new project
+    await startProjectPipeline(project.id, project.name);
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Failed to spawn new project', { 
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+  }
+}
+
+/**
+ * Start the pipeline for a project (scaffold → build → deploy → verify → publish)
+ */
+async function startProjectPipeline(projectId: number, projectName: string): Promise<void> {
+  try {
+    const projectIdStr = String(projectId);
+    
+    logger.info('Starting pipeline for project', { projectId, projectName });
+    
+    // Enqueue the first job in the pipeline: scaffold
+    await enqueue({
+      projectId: projectIdStr,
+      kind: 'scaffold',
+      payload: {
+        templateRef: 'basic', // Default template
+        spec: {
+          name: projectName,
+          description: `Pipeline for ${projectName}`
+        }
+      }
+    });
+    
+    logger.info('Pipeline started - scaffold job enqueued', { projectId, projectName });
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Failed to start project pipeline', { 
+      projectId,
+      projectName,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+  }
+}
+
 async function mainLoop(): Promise<void> {
   while (isRunning) {
     try {
@@ -109,7 +234,10 @@ async function mainLoop(): Promise<void> {
       if (job) {
         await processJob(job);
       } else {
-        // No jobs available, wait before polling again
+        // No jobs available - check if we should spawn new projects
+        await checkIdleAndSpawn();
+        
+        // Wait before polling again
         await sleep(POLL_INTERVAL);
       }
     } catch (error) {

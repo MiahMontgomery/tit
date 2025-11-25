@@ -3,7 +3,24 @@ import { ProjectsRepo } from '../../../server/src/lib/repos/ProjectsRepo.js';
 import { ArtifactsRepo } from '../../../server/src/lib/repos/ArtifactsRepo.js';
 import { enqueue } from '../../../server/src/lib/queue.js';
 import { logger } from '../../../server/src/lib/logger.js';
+import { Project as TemplateProject } from '../templates/types.js';
 import path from 'path';
+
+/**
+ * Convert Prisma Project to template Project format
+ */
+function toTemplateProject(prismaProject: any, templateRef: string, spec: any): TemplateProject {
+  return {
+    id: String(prismaProject.id),
+    name: prismaProject.name,
+    type: templateRef,
+    templateRef: templateRef,
+    spec: spec,
+    state: 'init',
+    createdAt: prismaProject.createdAt,
+    updatedAt: prismaProject.createdAt
+  };
+}
 
 export async function verify(job: any) {
   const { projectId, payload } = job;
@@ -38,12 +55,15 @@ export async function verify(job: any) {
       }
     };
     
+    // Convert Prisma project to template format
+    const templateProject = toTemplateProject(project, templateRef, spec);
+    
     // Resolve and execute template
     const template = resolveTemplate(templateRef);
-    await template.verify(project, spec, ctx);
+    await template.verify(templateProject, spec, ctx);
     
-    // Update project state
-    await ProjectsRepo.updateState(projectId, 'verified');
+    // Note: Project model doesn't have a 'state' field, so we skip state update
+    // The pipeline progress is tracked via Job status instead
     
     // Enqueue next job
     await enqueue({
